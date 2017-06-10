@@ -1,4 +1,4 @@
-CFLAGS=-O3 -ffast-math -march=native -O0
+CFLAGS=-O3 -ffast-math -march=native
 #CFLAGS+=-DNDEBUG
 CXXFLAGS=-std=c++11 -I/usr/include/eigen3 -I/usr/include/coin
 CXXFLAGS+=$(CFLAGS)
@@ -7,7 +7,7 @@ LDFLAGS=-lnlopt -lipopt -pthread
 CC=clang
 CXX=clang++
 
-cfiles=f.c jac.c hess.c
+cfiles=$(wildcard *.c)
 cxxfiles=main.cpp
 
 target=main
