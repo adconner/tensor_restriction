@@ -1,6 +1,8 @@
+import sys
+sys.path.append('/usr/local/lib/python3.6/site-packages')
 import ctypes
 import numpy as np
-import pygmo
+import pygmo as pg
 from numpy.ctypeslib import ndpointer
 
 class PolyUDP:
