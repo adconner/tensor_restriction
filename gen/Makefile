@@ -13,9 +13,8 @@ cxxfiles=main.cpp
 target=main
 sotarget=lib.so
 
-cpp: $(target)
-
 py: $(sotarget)
+cpp: $(target)
 
 $(target): $(patsubst %.c,%.o,$(cfiles)) $(patsubst %.cpp,%.o,$(cxxfiles))
 	$(CXX) $(LDFLAGS) $^ -o $@
