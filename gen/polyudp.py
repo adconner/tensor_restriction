@@ -27,10 +27,10 @@ class PolyUDP:
     def hessians(self,x):
         hess = ctypes.cdll.LoadLibrary('./lib.so').hess
         hess.argtypes = [ndpointer(ctypes.c_double,shape=(self.xs,),flags='C_CONTIGUOUS'),
-                ndpointer(ctypes.c_double,shape=(self.xs*(self.xs+1)/2,),flags='C_CONTIGUOUS')]
-        he = np.zeros(self.xs * (self.xs+1)/2)
+                ndpointer(ctypes.c_double,shape=(self.xs*(self.xs+1)//2,),flags='C_CONTIGUOUS')]
+        he = np.zeros(self.xs * (self.xs+1)//2)
         hess(x,he)
-        return he
+        return (he,)
 
     def get_bounds(self,):
         return (-2*np.ones(self.xs),2*np.ones(self.xs))
