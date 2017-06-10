@@ -34,3 +34,17 @@ class PolyUDP:
 
     def get_bounds(self,):
         return (-2*np.ones(self.xs),2*np.ones(self.xs))
+
+    def has_gradient(self):
+        try:
+            ctypes.cdll.LoadLibrary('./lib.so').jac
+            return True
+        except:
+            return False
+
+    def has_hessians(self):
+        try:
+            ctypes.cdll.LoadLibrary('./lib.so').hess
+            return True
+        except:
+            return False
