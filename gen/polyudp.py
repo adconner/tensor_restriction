@@ -48,3 +48,24 @@ class PolyUDP:
             return True
         except:
             return False
+
+class DoAll:
+    def __init__(self,uda):
+        self.alg=pg.algorithm(uda)
+    def evolve(self,pop):
+        res = pg.population(pop.problem)
+        for i,p in enumerate(zip(pop.get_x(),pop.get_f())):
+            tpop = pg.population(pop.problem)
+            tpop.push_back(*p)
+            tpop=self.alg.evolve(tpop)
+            res.push_back(tpop.champion_x,tpop.champion_f)
+        return res
+
+class Comp:
+    def __init__(self,uda1,uda2):
+        self.alg1=pg.algorithm(uda1)
+        self.alg2=pg.algorithm(uda2)
+    def evolve(self,pop):
+        res = self.alg2.evolve(pop)
+        res = self.alg1.evolve(res)
+        return res
