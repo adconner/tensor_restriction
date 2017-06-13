@@ -14,7 +14,7 @@ all: $(target)
 $(target): $(patsubst %.cpp,%.o,$(cxxfiles))
 	$(CXX) $^ -o $@ $(LDFLAGS) 
 
-main: main.cpp prob.h
+main.o: main.cpp prob.h
 
 clean:
-	rm -f $(patsubst %.c,%.o,$(cfiles)) $(patsubst %.cpp,%.o,$(cxxfiles)) $(target)
+	rm -f $(patsubst %.cpp,%.o,$(cxxfiles)) $(target)
