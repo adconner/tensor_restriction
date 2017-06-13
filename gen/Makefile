@@ -1,5 +1,5 @@
 CFLAGS=-O3 -ffast-math -march=native
-CXXFLAGS=-std=c++11 -I/usr/include/eigen3 $(CFLAGS)
+CXXFLAGS=-std=c++14 -I/usr/include/eigen3 $(CFLAGS)
 LDFLAGS=-lceres -lcxsparse -lcholmod -lumfpack -lamd -lcamd -lcolamd -lccolamd -lbtf -lsuitesparseconfig -lmetis -llapack -lopenblas -lglog -lomp -pthread
 #LDFLAGS+=-static
 CC=clang
