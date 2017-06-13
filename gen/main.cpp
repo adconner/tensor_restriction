@@ -1,6 +1,7 @@
 #include <random>
 #include <fstream>
 #include <iterator>
+#include <memory>
 #include <limits>
 #include "ceres/ceres.h"
 #include "glog/logging.h"
@@ -8,6 +9,16 @@
 
 using namespace ceres;
 using namespace std;
+
+class SolvedCallback : public IterationCallback {
+  public:
+    SolvedCallback(double solved) : _solved(solved) {}
+    CallbackReturnType operator()(const IterationSummary& summary) {
+      return summary.cost < _solved ? SOLVER_TERMINATE_SUCCESSFULLY : SOLVER_CONTINUE;
+    }
+  private:
+    double _solved;
+};
 
 int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);
@@ -23,6 +34,8 @@ int main(int argc, char** argv) {
 
   Solver::Options options;
   options.minimizer_progress_to_stdout = true;
+  auto solved = make_unique<SolvedCallback>(1e-3);
+  options.callbacks.push_back(solved.get());
   /* options.max_num_iterations = 10000; */
   /* options.max_num_iterations = 1000; */
   options.num_threads = 4;
