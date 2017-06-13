@@ -54,13 +54,13 @@ int main(int argc, char** argv) {
   /* options.nonlinear_conjugate_gradient_type = HESTENES_STIEFEL; */
 
   // linear solver options
-  options.linear_solver_type = SPARSE_NORMAL_CHOLESKY; // since solutions are typically sparse?
-  options.sparse_linear_algebra_library_type = SUITE_SPARSE; // since solutions are typically sparse?
+  options.linear_solver_type = SPARSE_NORMAL_CHOLESKY;
+  options.sparse_linear_algebra_library_type = SUITE_SPARSE;
   options.dynamic_sparsity = true; // since solutions are typically sparse?
   /* options.use_postordering = true; */
 
-  /* options.linear_solver_type = DENSE_QR; // since solutions are typically sparse? */
-  /* options.dense_linear_algebra_library_type = LAPACK; // since solutions are typically sparse? */
+  /* options.linear_solver_type = DENSE_QR; */
+  /* options.dense_linear_algebra_library_type = LAPACK; */
 
   /* options.linear_solver_type = CGNR; */
   /* options.linear_solver_type = ITERATIVE_SCHUR; */
