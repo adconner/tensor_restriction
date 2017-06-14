@@ -159,11 +159,13 @@ int main(int argc, char** argv) {
   for (int i=num_relax; i>=0; --i) {
     sqalpha = std::sqrt(alphastart * i/(double) num_relax);
     Solver::Summary summary;
+    cout << "forcing coefficient " << (sqalpha * sqalpha) << " cost ";
+    cout.flush();
     Solve(options, &problem, &summary);
     /* cout << summary.BriefReport() << "\n"; */
     /* cout << summary.FullReport() << "\n"; */
     double cost; problem.Evaluate(eopts,&cost,0,0,0);
-    cout << "forcing coefficient " << (sqalpha * sqalpha) << " cost " << cost << endl;
+    cout << cost << endl;
   }
   sqalpha = 0;
   solved = 1e-9;
