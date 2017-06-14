@@ -158,6 +158,11 @@ int main(int argc, char** argv) {
     problem.AddResidualBlock(new NoBorderRank, NULL, &x[i]);
   }
 
+  for (int i=0; i<27; ++i) {
+    x[i] = 0;
+    problem.SetParameterBlockConstant(&x[i]);
+  }
+
   Solver::Options options;
   auto solvedstop = make_unique<SolvedCallback>();
   options.callbacks.push_back(solvedstop.get());
@@ -182,18 +187,17 @@ int main(int argc, char** argv) {
   if (summary.final_cost > solved) {
     cout << "accuracy fail, not sparsifying" << endl;
     cout << summary.FullReport() << "\n";
-    return 1;
-  } 
-
-  cout << "solution seems good, sparsifying..." << endl;
-  options.max_num_iterations = 30;
-  checkpoint_iter = 10;
-  checkpoint_ok = 1e-4;
-  greedy_discrete(options,problem,x,solved,DM_ZERO);
-  options.max_num_iterations = 15;
-  checkpoint_iter = 4;
-  greedy_discrete(options,problem,x,solved,DM_INTEGER);
-  greedy_discrete(options,problem,x,solved,DM_RATIONAL);
+  } else {
+    cout << "solution seems good, sparsifying..." << endl;
+    options.max_num_iterations = 30;
+    checkpoint_iter = 10;
+    checkpoint_ok = 1e-4;
+    greedy_discrete(options,problem,x,solved,DM_ZERO);
+    options.max_num_iterations = 15;
+    checkpoint_iter = 4;
+    greedy_discrete(options,problem,x,solved,DM_INTEGER);
+    greedy_discrete(options,problem,x,solved,DM_RATIONAL);
+  }
 
   ofstream out("out.txt");
   out.precision(numeric_limits<double>::max_digits10);
