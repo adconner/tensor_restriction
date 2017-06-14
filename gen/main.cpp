@@ -10,15 +10,60 @@
 using namespace ceres;
 using namespace std;
 
+double sqalpha = 1;
+double solved = 1e-3;
+
 class SolvedCallback : public IterationCallback {
   public:
-    SolvedCallback(double solved) : _solved(solved) {}
     CallbackReturnType operator()(const IterationSummary& summary) {
-      return summary.cost < _solved ? SOLVER_TERMINATE_SUCCESSFULLY : SOLVER_CONTINUE;
+      return summary.cost < solved ? SOLVER_TERMINATE_SUCCESSFULLY : SOLVER_CONTINUE;
     }
-  private:
-    double _solved;
 };
+
+class NoBorderRank : public SizedCostFunction<1,1> {
+  public:
+    bool Evaluate(const double* const* x,
+                        double* residuals,
+                        double** jacobians) const {
+      residuals[0] = sqalpha * x[0][0];
+      if (jacobians && jacobians[0]) {
+        jacobians[0][0] = sqalpha;
+      }
+      return true;
+    }
+};
+
+void solver_opts(Solver::Options &options) {
+  /* options.minimizer_progress_to_stdout = true; */
+  /* options.max_num_iterations = 10000; */
+  /* options.max_num_iterations = 1000; */
+  options.num_threads = 4;
+  options.num_linear_solver_threads = 4;
+
+  /* options.minimizer_type = LINE_SEARCH; */
+  // trust region options
+  options.trust_region_strategy_type = LEVENBERG_MARQUARDT;
+  options.use_nonmonotonic_steps = true;
+  /* options.use_inner_iterations = true; */
+
+  // line search options
+  /* options.line_search_direction_type = NONLINEAR_CONJUGATE_GRADIENT; */
+  /* options.line_search_type = ARMIJO; */
+  /* options.nonlinear_conjugate_gradient_type = POLAK_RIBIERE; */
+  /* options.nonlinear_conjugate_gradient_type = HESTENES_STIEFEL; */
+
+  // linear solver options
+  options.linear_solver_type = SPARSE_NORMAL_CHOLESKY;
+  options.sparse_linear_algebra_library_type = SUITE_SPARSE;
+  options.dynamic_sparsity = true; // since solutions are typically sparse?
+  /* options.use_postordering = true; */
+
+  /* options.linear_solver_type = DENSE_QR; */
+  /* options.dense_linear_algebra_library_type = LAPACK; */
+
+  /* options.linear_solver_type = CGNR; */
+  /* options.linear_solver_type = ITERATIVE_SCHUR; */
+}
 
 void greedy_discrete(const Solver::Options & opts, Problem &p, double *x, 
     double solved = 1e-2, bool zero=true) {
@@ -61,47 +106,33 @@ int main(int argc, char** argv) {
 
   Problem problem;
   AddToProblem(problem,x);
+  Problem::EvaluateOptions eopts;
+  problem.GetResidualBlocks(&eopts.residual_blocks);
+  // these are the residuals we care about
 
-  const double solved = 1e-3;
+  for (int i=0; i<N; ++i) {
+    problem.AddResidualBlock(new NoBorderRank, NULL, &x[i]);
+  }
+
   Solver::Options options;
-  /* options.minimizer_progress_to_stdout = true; */
-  auto solvedstop = make_unique<SolvedCallback>(solved);
+  auto solvedstop = make_unique<SolvedCallback>();
   options.callbacks.push_back(solvedstop.get());
-  /* options.max_num_iterations = 10000; */
-  /* options.max_num_iterations = 1000; */
-  options.num_threads = 4;
-  options.num_linear_solver_threads = 4;
+  solver_opts(options);
 
-  /* options.minimizer_type = LINE_SEARCH; */
-  // trust region options
-  options.trust_region_strategy_type = LEVENBERG_MARQUARDT;
-  options.use_nonmonotonic_steps = true;
-  /* options.use_inner_iterations = true; */
+  for (int i=0; i<=100; ++i) {
+    sqalpha = std::sqrt(i/100.0);
+    /* cout << sqalpha << endl; */
+    /* sqalpha = 0; */
+    Solver::Summary summary;
+    Solve(options, &problem, &summary);
+    double cost; problem.Evaluate(eopts,&cost,0,0,0);
+    cout << summary.BriefReport() << "\n";
+    /* cout << summary.FullReport() << "\n"; */
+    cout << "cost " << cost << endl;
+  }
 
-  // line search options
-  /* options.line_search_direction_type = NONLINEAR_CONJUGATE_GRADIENT; */
-  /* options.line_search_type = ARMIJO; */
-  /* options.nonlinear_conjugate_gradient_type = POLAK_RIBIERE; */
-  /* options.nonlinear_conjugate_gradient_type = HESTENES_STIEFEL; */
-
-  // linear solver options
-  options.linear_solver_type = SPARSE_NORMAL_CHOLESKY;
-  options.sparse_linear_algebra_library_type = SUITE_SPARSE;
-  options.dynamic_sparsity = true; // since solutions are typically sparse?
-  /* options.use_postordering = true; */
-
-  /* options.linear_solver_type = DENSE_QR; */
-  /* options.dense_linear_algebra_library_type = LAPACK; */
-
-  /* options.linear_solver_type = CGNR; */
-  /* options.linear_solver_type = ITERATIVE_SCHUR; */
-
-  Solver::Summary summary;
-  Solve(options, &problem, &summary);
-
-  /* cout << summary.FullReport() << "\n"; */
-  greedy_discrete(options,problem,x,solved,true);
-  greedy_discrete(options,problem,x,solved,false);
+  /* greedy_discrete(options,problem,x,solved,true); */
+  /* greedy_discrete(options,problem,x,solved,false); */
 
   ofstream out("out.txt");
   out.precision(numeric_limits<double>::max_digits10);
