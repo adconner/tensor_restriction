@@ -13,11 +13,17 @@ using namespace std;
 const int num_relax = 50;
 double alphastart = 0.01;
 double sqalpha;
+
 double solved = 1e-4;
+double checkpoint_iter = -1;
+double checkpoint_ok = 1e-5;
 
 class SolvedCallback : public IterationCallback {
   public:
     CallbackReturnType operator()(const IterationSummary& summary) {
+      if (checkpoint_iter >= 0 
+          && summary.iteration >= checkpoint_iter 
+          && summary.cost > checkpoint_ok) return SOLVER_ABORT;
       return summary.cost < solved ? SOLVER_TERMINATE_SUCCESSFULLY : SOLVER_CONTINUE;
     }
 };
@@ -180,9 +186,12 @@ int main(int argc, char** argv) {
   } 
 
   cout << "solution seems good, sparsifying..." << endl;
-  options.max_num_iterations = 15;
+  options.max_num_iterations = 30;
+  checkpoint_iter = 10;
+  checkpoint_ok = 1e-4;
   greedy_discrete(options,problem,x,solved,DM_ZERO);
-  options.max_num_iterations = 10;
+  options.max_num_iterations = 15;
+  checkpoint_iter = 4;
   greedy_discrete(options,problem,x,solved,DM_INTEGER);
   greedy_discrete(options,problem,x,solved,DM_RATIONAL);
 
