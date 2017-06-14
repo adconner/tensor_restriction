@@ -20,6 +20,40 @@ class SolvedCallback : public IterationCallback {
     double _solved;
 };
 
+/* void dfs_sparse(const Solver::Options & opts, Problem &p, double *x) { */
+/*   /1* min_element( *1/ */
+/* } */
+
+void greedy_discrete(const Solver::Options & opts, Problem &p, double *x, 
+    double solved = 1e-2, bool zero=true) {
+  const int n = p.NumParameters();
+  while (true) {
+    vector<pair<double,int> > vals(n);
+    for (int i=0; i<n; ++i)
+      vals[i] = make_pair(zero ? std::abs(x[i]) : std::abs(x[i] - round(x[i])),i);
+    sort(vals.begin(),vals.end());
+    for (int i=0; i<n; ++i) {
+      if (!p.IsParameterBlockConstant(x+vals[i].second)) {
+        vector<double> sav(x,x+n);
+        x[vals[i].second] = zero ? 0.0 : round(x[vals[i].second]);
+        cout << "setting x[" << vals[i].second << "] = " << x[vals[i].second] << "...";
+        cout.flush();
+        p.SetParameterBlockConstant(x+vals[i].second);
+        Solver::Summary summary;
+        Solve(opts,&p,&summary);
+        if (summary.final_cost < solved) {
+          cout << "success" << endl;
+          goto found;
+        }
+        cout << "fail" << endl;
+        copy(sav.begin(),sav.end(),x);
+      }
+    }
+    break;
+    found:;
+  }
+}
+
 int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);
 
@@ -34,7 +68,7 @@ int main(int argc, char** argv) {
 
   Solver::Options options;
   options.minimizer_progress_to_stdout = true;
-  auto solved = make_unique<SolvedCallback>(1e-3);
+  auto solved = make_unique<SolvedCallback>(1e-2);
   options.callbacks.push_back(solved.get());
   /* options.max_num_iterations = 10000; */
   /* options.max_num_iterations = 1000; */
@@ -68,7 +102,9 @@ int main(int argc, char** argv) {
   Solver::Summary summary;
   Solve(options, &problem, &summary);
 
-  cout << summary.FullReport() << "\n";
+  /* cout << summary.FullReport() << "\n"; */
+  greedy_discrete(options,problem,x,1e-2,true);
+
   ofstream out("out.txt");
   out.precision(numeric_limits<double>::max_digits10);
   copy(x,x+N,ostream_iterator<double>(out,"\n"));
