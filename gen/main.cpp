@@ -12,9 +12,10 @@ using namespace std;
 
 const int num_relax = 30;
 const double alphastart = 0.02;
+
 const double ftol_rough = 1e-4;
-// lower values speed the forcing procedure at the expense of precision
-// (although precision should be irrelevant here)
+const double ftol_fine = 1e-20; 
+// should not proc, I want to stop only on my user conditin
 
 const double solved_fine = 1e-7;
 const double attempt_sparse_thresh = 5e-5;
@@ -66,9 +67,9 @@ void solver_opts(Solver::Options &options) {
   options.sparse_linear_algebra_library_type = SUITE_SPARSE;
   options.dense_linear_algebra_library_type = LAPACK;
 
-  options.parameter_tolerance = 1e-20;
-  options.function_tolerance = 1e-20;
-  options.gradient_tolerance = 1e-20;
+  /* options.parameter_tolerance = 1e-20; */
+  /* options.function_tolerance = 1e-20; */
+  /* options.gradient_tolerance = 1e-20; */
 }
 
 class SolvedCallback : public IterationCallback {
@@ -197,7 +198,7 @@ int main(int argc, char** argv) {
     cout << cost << endl;
   }
   sqalpha = 0; // TODO should remove forcing terms?
-  options.function_tolerance = 1e-20; // impossible
+  options.function_tolerance = 1e-8;
 
   // should also cancel if cost not small enough
 
