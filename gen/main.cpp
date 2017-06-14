@@ -35,6 +35,30 @@ class NoBorderRank : public SizedCostFunction<1,1> {
     }
 };
 
+// choose a pretty coarse rational approximation by default
+pair<int,int> rational_approximation(double e, double eps = 1e-2) {
+  bool minus = e < 0;
+  if (minus) e = -e;
+  vector<int> a;
+  while (true) {
+    a.push_back(int(e));
+    e -= int(e);
+    if (e < eps) break;
+    e = 1/e;
+  }
+  int h=a[0],hp=1,k=1,kp=0;
+  for (int i=1; i<a.size(); ++i) {
+    tie(h,hp) = make_pair(h*a[i]+hp,h);
+    tie(k,kp) = make_pair(k*a[i]+kp,k);
+  }
+  return make_pair(h,k);
+}
+
+double double_rational_approximation(double e, double eps = 1e-2) {
+  int h,k; tie(h,k) = rational_approximation(e);
+  return h / (double)k;
+}
+
 void solver_opts(Solver::Options &options) {
   /* options.minimizer_progress_to_stdout = true; */
   options.max_num_iterations = 200;
@@ -66,21 +90,32 @@ void solver_opts(Solver::Options &options) {
   /* options.linear_solver_type = ITERATIVE_SCHUR; */
 }
 
+enum DiscreteMode {
+  DM_ZERO, DM_INTEGER, DM_RATIONAL
+};
+
 void greedy_discrete(const Solver::Options & opts, Problem &p, double *x, 
-    double solved = 1e-2, bool zero=true) {
+    double solved = 1e-2, DiscreteMode dm=DM_ZERO) {
   const int n = p.NumParameters();
   while (true) {
-    vector<pair<double,int> > vals(n);
-    for (int i=0; i<n; ++i)
-      vals[i] = make_pair(zero ? std::abs(x[i]) : std::abs(x[i] - round(x[i])),i);
+    vector<tuple<double,double,int> > vals(n);
+    for (int i=0; i<n; ++i) {
+      double approx;
+      switch (dm) {
+        case DM_ZERO: approx = 0; break;
+        case DM_INTEGER: approx = std::round(x[i]); break;
+        case DM_RATIONAL: approx = double_rational_approximation(x[i]); break;
+      }
+      vals[i] = make_tuple(std::abs(x[i]-approx),approx,i);
+    }
     sort(vals.begin(),vals.end());
     for (int i=0; i<n; ++i) {
-      if (!p.IsParameterBlockConstant(x+vals[i].second)) {
+      if (!p.IsParameterBlockConstant(x+get<2>(vals[i]))) {
         vector<double> sav(x,x+n);
-        x[vals[i].second] = zero ? 0.0 : round(x[vals[i].second]);
-        cout << "setting x[" << vals[i].second << "] = " << x[vals[i].second] << "... ";
+        x[get<2>(vals[i])] = get<1>(vals[i]);
+        cout << "setting x[" << get<2>(vals[i]) << "] = " << x[get<2>(vals[i])] << "... ";
         cout.flush();
-        p.SetParameterBlockConstant(x+vals[i].second);
+        p.SetParameterBlockConstant(x+get<2>(vals[i]));
         Solver::Summary summary;
         Solve(opts,&p,&summary);
         if (summary.final_cost <= solved) {
@@ -88,7 +123,7 @@ void greedy_discrete(const Solver::Options & opts, Problem &p, double *x,
           goto found;
         }
         cout << "fail" << endl << summary.BriefReport() << endl;
-        p.SetParameterBlockVariable(x+vals[i].second);
+        p.SetParameterBlockVariable(x+get<2>(vals[i]));
         copy(sav.begin(),sav.end(),x);
       }
     }
@@ -141,8 +176,9 @@ int main(int argc, char** argv) {
   } else {
     cout << "solution seems good, sparsifying..." << endl;
     options.max_num_iterations = 25;
-    greedy_discrete(options,problem,x,solved,true);
-    greedy_discrete(options,problem,x,solved,false);
+    greedy_discrete(options,problem,x,solved,DM_ZERO);
+    greedy_discrete(options,problem,x,solved,DM_INTEGER);
+    greedy_discrete(options,problem,x,solved,DM_RATIONAL);
   }
 
   ofstream out("out.txt");
