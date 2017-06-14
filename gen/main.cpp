@@ -176,14 +176,15 @@ int main(int argc, char** argv) {
   if (summary.final_cost > solved) {
     cout << "accuracy fail, not sparsifying" << endl;
     cout << summary.FullReport() << "\n";
-  } else {
-    cout << "solution seems good, sparsifying..." << endl;
-    options.max_num_iterations = 15;
-    greedy_discrete(options,problem,x,solved,DM_ZERO);
-    options.max_num_iterations = 10;
-    greedy_discrete(options,problem,x,solved,DM_INTEGER);
-    greedy_discrete(options,problem,x,solved,DM_RATIONAL);
-  }
+    return 1;
+  } 
+
+  cout << "solution seems good, sparsifying..." << endl;
+  options.max_num_iterations = 15;
+  greedy_discrete(options,problem,x,solved,DM_ZERO);
+  options.max_num_iterations = 10;
+  greedy_discrete(options,problem,x,solved,DM_INTEGER);
+  greedy_discrete(options,problem,x,solved,DM_RATIONAL);
 
   ofstream out("out.txt");
   out.precision(numeric_limits<double>::max_digits10);
