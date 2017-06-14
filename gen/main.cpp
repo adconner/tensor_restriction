@@ -110,6 +110,7 @@ void greedy_discrete(const Solver::Options & opts, Problem &p, double *x,
     }
     sort(vals.begin(),vals.end());
     for (int i=0; i<n; ++i) {
+      if (dm != DM_ZERO && get<0>(vals[i]) > 0.5) break;
       if (!p.IsParameterBlockConstant(x+get<2>(vals[i]))) {
         vector<double> sav(x,x+n);
         x[get<2>(vals[i])] = get<1>(vals[i]);
