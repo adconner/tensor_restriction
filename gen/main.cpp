@@ -88,6 +88,7 @@ void greedy_discrete(const Solver::Options & opts, Problem &p, double *x,
           goto found;
         }
         cout << "fail" << endl << summary.BriefReport() << endl;
+        p.SetParameterBlockVariable(x+vals[i].second);
         copy(sav.begin(),sav.end(),x);
       }
     }
