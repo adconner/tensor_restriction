@@ -12,10 +12,12 @@ using namespace std;
 
 const int num_relax = 30;
 const double alphastart = 0.02;
+const double ftol_rough = 1e-4;
+// lower values speed the forcing procedure at the expense of precision
+// (although precision should be irrelevant here)
 
-const double solved_rough = 1e-4;
 const double solved_fine = 1e-7;
-const double attempt_sparse_thresh = 1e-6;
+const double attempt_sparse_thresh = 5e-5;
 
 // parameters for finding an initial solution
 const int iterations_trust_rough = 200; 
@@ -24,7 +26,7 @@ const int iterations_line_rough = 700;
 const int iterations_line_fine = 10000;
 
 // parameters for descretization
-const double checkpoint = 5e-2;
+const double checkpoint = 0.5;
 const int iterations_trust_checkpoint = 5;
 const int iterations_line_checkpoint = 30;
 const int iterations_trust_tiny = 30;
@@ -35,6 +37,39 @@ double sqalpha; // square root of forcing coeffient
 double solved; // value to stop optimization at if reached
 double checkpoint_ok; // stop iteration if have not converged to at least here
 double checkpoint_iter; // checkpoint iteration number
+
+void solver_opts(Solver::Options &options) {
+  options.num_threads = 4;
+  options.num_linear_solver_threads = 4;
+
+  /* options.minimizer_type = LINE_SEARCH; */
+  // trust region options
+  options.trust_region_strategy_type = LEVENBERG_MARQUARDT;
+  /* options.use_nonmonotonic_steps = true; */
+  options.use_inner_iterations = true;
+
+  // line search options
+  options.line_search_direction_type = BFGS;
+  /* options.line_search_type = ARMIJO; */
+  /* options.nonlinear_conjugate_gradient_type = POLAK_RIBIERE; */
+  /* options.nonlinear_conjugate_gradient_type = HESTENES_STIEFEL; */
+
+  // linear solver options
+  options.linear_solver_type = SPARSE_NORMAL_CHOLESKY;
+  options.dynamic_sparsity = true; // since solutions are typically sparse?
+  /* options.use_postordering = true; */
+
+  /* options.linear_solver_type = DENSE_QR; */
+  /* options.linear_solver_type = CGNR; */
+  /* options.linear_solver_type = ITERATIVE_SCHUR; */
+
+  options.sparse_linear_algebra_library_type = SUITE_SPARSE;
+  options.dense_linear_algebra_library_type = LAPACK;
+
+  options.parameter_tolerance = 1e-20;
+  options.function_tolerance = 1e-20;
+  options.gradient_tolerance = 1e-20;
+}
 
 class SolvedCallback : public IterationCallback {
   public:
@@ -79,35 +114,6 @@ pair<int,int> rational_approximation(double e, double eps) {
 double double_rational_approximation(double e, double eps = 1e-2) {
   int h,k; tie(h,k) = rational_approximation(e,eps);
   return h / (double)k;
-}
-
-void solver_opts(Solver::Options &options) {
-  options.num_threads = 4;
-  options.num_linear_solver_threads = 4;
-
-  /* options.minimizer_type = LINE_SEARCH; */
-  // trust region options
-  options.trust_region_strategy_type = LEVENBERG_MARQUARDT;
-  /* options.use_nonmonotonic_steps = true; */
-  options.use_inner_iterations = true;
-
-  // line search options
-  options.line_search_direction_type = BFGS;
-  /* options.line_search_type = ARMIJO; */
-  /* options.nonlinear_conjugate_gradient_type = POLAK_RIBIERE; */
-  /* options.nonlinear_conjugate_gradient_type = HESTENES_STIEFEL; */
-
-  // linear solver options
-  options.linear_solver_type = SPARSE_NORMAL_CHOLESKY;
-  options.dynamic_sparsity = true; // since solutions are typically sparse?
-  /* options.use_postordering = true; */
-
-  /* options.linear_solver_type = DENSE_QR; */
-  /* options.linear_solver_type = CGNR; */
-  /* options.linear_solver_type = ITERATIVE_SCHUR; */
-
-  options.sparse_linear_algebra_library_type = SUITE_SPARSE;
-  options.dense_linear_algebra_library_type = LAPACK;
 }
 
 enum DiscreteMode {
@@ -178,7 +184,7 @@ int main(int argc, char** argv) {
 
   options.minimizer_type = TRUST_REGION;
   options.max_num_iterations = iterations_trust_rough;
-  solved = solved_rough;
+  options.function_tolerance = ftol_rough;
   checkpoint_iter = -1;
   for (int i=num_relax; i>=0; --i) {
     sqalpha = std::sqrt(alphastart * i/(double) num_relax);
@@ -186,10 +192,14 @@ int main(int argc, char** argv) {
     cout << "forcing coefficient " << (sqalpha * sqalpha) << " cost ";
     cout.flush();
     Solve(options, &problem, &summary);
+    /* cout << summary.FullReport() << "\n"; */
     double cost; problem.Evaluate(eopts,&cost,0,0,0);
     cout << cost << endl;
   }
   sqalpha = 0; // TODO should remove forcing terms?
+  options.function_tolerance = 1e-20; // impossible
+
+  // should also cancel if cost not small enough
 
   options.minimizer_type = TRUST_REGION;
   options.max_num_iterations = iterations_trust_fine;
@@ -198,17 +208,29 @@ int main(int argc, char** argv) {
   options.minimizer_progress_to_stdout = true;
   Solver::Summary summary;
   Solve(options, &problem, &summary);
+  cout << summary.FullReport() << "\n";
+
+  options.minimizer_type = LINE_SEARCH;
+  options.max_num_iterations = iterations_line_fine;
+  Solve(options, &problem, &summary);
+  cout << summary.FullReport() << "\n";
 
   if (summary.final_cost > attempt_sparse_thresh) {
     cout << "accuracy fail, not sparsifying" << endl;
     cout << summary.FullReport() << "\n";
   } else {
     cout << "solution seems good, sparsifying..." << endl;
-
     options.minimizer_progress_to_stdout = false;
-    options.max_num_iterations = iterations_trust_tiny;
-    checkpoint_iter = iterations_trust_checkpoint;
+
+    options.minimizer_type = LINE_SEARCH;
+    options.max_num_iterations = iterations_line_tiny;
+    checkpoint_iter = iterations_line_checkpoint;
     checkpoint_ok = checkpoint;
+
+    /* options.minimizer_type = TRUST_REGION; */
+    /* options.max_num_iterations = iterations_trust_tiny; */
+    /* checkpoint_iter = iterations_trust_checkpoint; */
+    /* checkpoint_ok = checkpoint; */
 
     greedy_discrete(options,problem,x,solved,DM_ZERO);
     greedy_discrete(options,problem,x,solved,DM_INTEGER);
