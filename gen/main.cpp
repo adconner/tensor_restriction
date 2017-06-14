@@ -42,20 +42,18 @@ class NoBorderRank : public SizedCostFunction<1,1> {
 };
 
 // choose a pretty coarse rational approximation by default
-pair<int,int> rational_approximation(double e, double eps = 1e-2) {
+pair<int,int> rational_approximation(double e, double eps) {
+  double arg = e;
   bool minus = e < 0;
   if (minus) e = -e;
-  vector<int> a;
-  while (true) {
-    a.push_back(int(e));
-    e -= int(e);
-    if (e < eps) break;
-    e = 1/e;
-  }
-  int h=a[0],hp=1,k=1,kp=0;
-  for (int i=1; i<a.size(); ++i) {
-    tie(h,hp) = make_pair(h*a[i]+hp,h);
-    tie(k,kp) = make_pair(k*a[i]+kp,k);
+  /* vector<int> a; */
+  int h=int(e),hp=1,k=1,kp=0;
+  e -= int(e); e = 1/e;
+  while (std::abs(arg-h/(double)k) > eps) {
+    int ai = int(e);
+    e -= ai; e = 1/e;
+    tie(h,hp) = make_pair(h*ai+hp,h);
+    tie(k,kp) = make_pair(k*ai+kp,k);
   }
   return make_pair(minus ? -h : h,k);
 }
