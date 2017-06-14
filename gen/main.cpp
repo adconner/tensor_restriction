@@ -10,13 +10,31 @@
 using namespace ceres;
 using namespace std;
 
-const int num_relax = 50;
-double alphastart = 0.02;
-double sqalpha;
+const int num_relax = 30;
+const double alphastart = 0.02;
 
-double solved = 1e-4;
-double checkpoint_iter = -1;
-double checkpoint_ok = 1e-5;
+const double solved_rough = 1e-4;
+const double solved_fine = 1e-7;
+const double attempt_sparse_thresh = 1e-6;
+
+// parameters for finding an initial solution
+const int iterations_trust_rough = 200; 
+const int iterations_trust_fine = 2500;
+const int iterations_line_rough = 700; 
+const int iterations_line_fine = 10000;
+
+// parameters for descretization
+const double checkpoint = 5e-2;
+const int iterations_trust_checkpoint = 5;
+const int iterations_line_checkpoint = 30;
+const int iterations_trust_tiny = 30;
+const int iterations_line_tiny = 100; 
+
+// control variables
+double sqalpha; // square root of forcing coeffient
+double solved; // value to stop optimization at if reached
+double checkpoint_ok; // stop iteration if have not converged to at least here
+double checkpoint_iter; // checkpoint iteration number
 
 class SolvedCallback : public IterationCallback {
   public:
@@ -64,8 +82,6 @@ double double_rational_approximation(double e, double eps = 1e-2) {
 }
 
 void solver_opts(Solver::Options &options) {
-  /* options.minimizer_progress_to_stdout = true; */
-  options.max_num_iterations = 200;
   options.num_threads = 4;
   options.num_linear_solver_threads = 4;
 
@@ -150,46 +166,51 @@ int main(int argc, char** argv) {
   AddToProblem(problem,x);
   Problem::EvaluateOptions eopts;
   problem.GetResidualBlocks(&eopts.residual_blocks);
-  // these are the residuals we care about
+  // save residuals we care about before adding other regularization
 
   for (int i=0; i<N; ++i) {
     problem.AddResidualBlock(new NoBorderRank, NULL, &x[i]);
   }
 
-  Solver::Options options;
+  Solver::Options options; solver_opts(options);
   auto solvedstop = make_unique<SolvedCallback>();
   options.callbacks.push_back(solvedstop.get());
-  solver_opts(options);
 
+  options.minimizer_type = TRUST_REGION;
+  options.max_num_iterations = iterations_trust_rough;
+  solved = solved_rough;
+  checkpoint_iter = -1;
   for (int i=num_relax; i>=0; --i) {
     sqalpha = std::sqrt(alphastart * i/(double) num_relax);
     Solver::Summary summary;
     cout << "forcing coefficient " << (sqalpha * sqalpha) << " cost ";
     cout.flush();
     Solve(options, &problem, &summary);
-    /* cout << summary.BriefReport() << "\n"; */
-    /* cout << summary.FullReport() << "\n"; */
     double cost; problem.Evaluate(eopts,&cost,0,0,0);
     cout << cost << endl;
   }
-  sqalpha = 0;
-  solved = 1e-9;
-  options.max_num_iterations = 2500;
+  sqalpha = 0; // TODO should remove forcing terms?
+
+  options.minimizer_type = TRUST_REGION;
+  options.max_num_iterations = iterations_trust_fine;
+  solved = solved_fine;
+  checkpoint_iter = -1;
   options.minimizer_progress_to_stdout = true;
   Solver::Summary summary;
   Solve(options, &problem, &summary);
-  if (summary.final_cost > solved) {
+
+  if (summary.final_cost > attempt_sparse_thresh) {
     cout << "accuracy fail, not sparsifying" << endl;
     cout << summary.FullReport() << "\n";
   } else {
     cout << "solution seems good, sparsifying..." << endl;
+
     options.minimizer_progress_to_stdout = false;
-    options.max_num_iterations = 30;
-    checkpoint_iter = 5;
-    checkpoint_ok = 1e-4;
+    options.max_num_iterations = iterations_trust_tiny;
+    checkpoint_iter = iterations_trust_checkpoint;
+    checkpoint_ok = checkpoint;
+
     greedy_discrete(options,problem,x,solved,DM_ZERO);
-    options.max_num_iterations = 15;
-    checkpoint_iter = 3;
     greedy_discrete(options,problem,x,solved,DM_INTEGER);
     greedy_discrete(options,problem,x,solved,DM_RATIONAL);
   }
