@@ -10,8 +10,10 @@
 using namespace ceres;
 using namespace std;
 
-double sqalpha = 1;
-double solved = 1e-3;
+const int num_relax = 50;
+double alphastart = 0.01;
+double sqalpha;
+double solved = 1e-4;
 
 class SolvedCallback : public IterationCallback {
   public:
@@ -35,8 +37,7 @@ class NoBorderRank : public SizedCostFunction<1,1> {
 
 void solver_opts(Solver::Options &options) {
   /* options.minimizer_progress_to_stdout = true; */
-  /* options.max_num_iterations = 10000; */
-  /* options.max_num_iterations = 1000; */
+  options.max_num_iterations = 200;
   options.num_threads = 4;
   options.num_linear_solver_threads = 4;
 
@@ -82,11 +83,11 @@ void greedy_discrete(const Solver::Options & opts, Problem &p, double *x,
         p.SetParameterBlockConstant(x+vals[i].second);
         Solver::Summary summary;
         Solve(opts,&p,&summary);
-        if (summary.final_cost < solved) {
+        if (summary.final_cost <= solved) {
           cout << "success" << endl;
           goto found;
         }
-        cout << "fail" << endl;
+        cout << "fail" << endl << summary.BriefReport() << endl;
         copy(sav.begin(),sav.end(),x);
       }
     }
@@ -119,20 +120,27 @@ int main(int argc, char** argv) {
   options.callbacks.push_back(solvedstop.get());
   solver_opts(options);
 
-  for (int i=0; i<=100; ++i) {
-    sqalpha = std::sqrt(i/100.0);
-    /* cout << sqalpha << endl; */
-    /* sqalpha = 0; */
+  for (int i=num_relax; i>=0; --i) {
+    sqalpha = std::sqrt(alphastart * i/(double) num_relax);
     Solver::Summary summary;
     Solve(options, &problem, &summary);
-    double cost; problem.Evaluate(eopts,&cost,0,0,0);
-    cout << summary.BriefReport() << "\n";
+    /* cout << summary.BriefReport() << "\n"; */
     /* cout << summary.FullReport() << "\n"; */
-    cout << "cost " << cost << endl;
+    double cost; problem.Evaluate(eopts,&cost,0,0,0);
+    cout << "forcing coefficient " << (sqalpha * sqalpha) << " cost " << cost << endl;
   }
-
-  /* greedy_discrete(options,problem,x,solved,true); */
-  /* greedy_discrete(options,problem,x,solved,false); */
+  sqalpha = 0;
+  solved = 1e-9;
+  Solver::Summary summary;
+  Solve(options, &problem, &summary);
+  if (summary.final_cost > solved) {
+    cout << "accuracy fail, not sparsifying" << endl;
+    cout << summary.FullReport() << "\n";
+  } else {
+    cout << "solution seems good, sparsifying..." << endl;
+    greedy_discrete(options,problem,x,solved,true);
+    greedy_discrete(options,problem,x,solved,false);
+  }
 
   ofstream out("out.txt");
   out.precision(numeric_limits<double>::max_digits10);
