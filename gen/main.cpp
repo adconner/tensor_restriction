@@ -147,7 +147,7 @@ void greedy_discrete(const Solver::Options & opts, Problem &p, double *x,
         p.SetParameterBlockConstant(x+get<2>(vals[i]));
         Solver::Summary summary;
         Solve(opts,&p,&summary);
-        if (summary.final_cost <= solved) {
+        if (summary.final_cost <= attempt_sparse_thresh) {
           cout << "success" << endl;
           goto found;
         }
