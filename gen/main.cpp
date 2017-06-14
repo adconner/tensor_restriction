@@ -158,11 +158,6 @@ int main(int argc, char** argv) {
     problem.AddResidualBlock(new NoBorderRank, NULL, &x[i]);
   }
 
-  for (int i=0; i<27; ++i) {
-    x[i] = 0;
-    problem.SetParameterBlockConstant(&x[i]);
-  }
-
   Solver::Options options;
   auto solvedstop = make_unique<SolvedCallback>();
   options.callbacks.push_back(solvedstop.get());
@@ -181,7 +176,7 @@ int main(int argc, char** argv) {
   }
   sqalpha = 0;
   solved = 1e-9;
-  options.max_num_iterations = 500;
+  options.max_num_iterations = 5000;
   Solver::Summary summary;
   Solve(options, &problem, &summary);
   if (summary.final_cost > solved) {
