@@ -177,8 +177,9 @@ int main(int argc, char** argv) {
     cout << summary.FullReport() << "\n";
   } else {
     cout << "solution seems good, sparsifying..." << endl;
-    options.max_num_iterations = 25;
+    options.max_num_iterations = 15;
     greedy_discrete(options,problem,x,solved,DM_ZERO);
+    options.max_num_iterations = 10;
     greedy_discrete(options,problem,x,solved,DM_INTEGER);
     greedy_discrete(options,problem,x,solved,DM_RATIONAL);
   }
