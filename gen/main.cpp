@@ -10,20 +10,21 @@
 using namespace ceres;
 using namespace std;
 
+const double ftol = 1e-9;
+const double gtol = 1e-9;
+const double ptol = 1e-9;
+
 const int num_relax = 30;
 const double alphastart = 0.02;
-
 const double ftol_rough = 1e-4;
-const double ftol_fine = 1e-20; 
-// should not proc, I want to stop only on my user conditin
 
 const double solved_fine = 1e-7;
 const double attempt_sparse_thresh = 5e-5;
 
 // parameters for finding an initial solution
-const int iterations_trust_rough = 200; 
+const int iterations_trust_rough = 200;
 const int iterations_trust_fine = 2500;
-const int iterations_line_rough = 700; 
+const int iterations_line_rough = 700;
 const int iterations_line_fine = 10000;
 
 // parameters for descretization
@@ -31,7 +32,7 @@ const double checkpoint = 0.5;
 const int iterations_trust_checkpoint = 5;
 const int iterations_line_checkpoint = 30;
 const int iterations_trust_tiny = 30;
-const int iterations_line_tiny = 100; 
+const int iterations_line_tiny = 100;
 
 // control variables
 double sqalpha; // square root of forcing coeffient
@@ -67,9 +68,9 @@ void solver_opts(Solver::Options &options) {
   options.sparse_linear_algebra_library_type = SUITE_SPARSE;
   options.dense_linear_algebra_library_type = LAPACK;
 
-  /* options.parameter_tolerance = 1e-20; */
-  /* options.function_tolerance = 1e-20; */
-  /* options.gradient_tolerance = 1e-20; */
+  options.function_tolerance = ftol;
+  options.parameter_tolerance = ptol;
+  options.gradient_tolerance = gtol;
 }
 
 class SolvedCallback : public IterationCallback {
@@ -198,7 +199,7 @@ int main(int argc, char** argv) {
     cout << cost << endl;
   }
   sqalpha = 0; // TODO should remove forcing terms?
-  options.function_tolerance = 1e-8;
+  options.function_tolerance = ftol;
 
   // should also cancel if cost not small enough
 
