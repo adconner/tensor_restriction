@@ -51,7 +51,7 @@ pair<int,int> rational_approximation(double e, double eps = 1e-2) {
     tie(h,hp) = make_pair(h*a[i]+hp,h);
     tie(k,kp) = make_pair(k*a[i]+kp,k);
   }
-  return make_pair(h,k);
+  return make_pair(minus ? -h : h,k);
 }
 
 double double_rational_approximation(double e, double eps = 1e-2) {
