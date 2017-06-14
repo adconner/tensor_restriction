@@ -61,7 +61,7 @@ pair<int,int> rational_approximation(double e, double eps = 1e-2) {
 }
 
 double double_rational_approximation(double e, double eps = 1e-2) {
-  int h,k; tie(h,k) = rational_approximation(e);
+  int h,k; tie(h,k) = rational_approximation(e,eps);
   return h / (double)k;
 }
 
