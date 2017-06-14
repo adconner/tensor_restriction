@@ -131,6 +131,7 @@ int main(int argc, char** argv) {
   }
   sqalpha = 0;
   solved = 1e-9;
+  options.max_num_iterations = 500;
   Solver::Summary summary;
   Solve(options, &problem, &summary);
   if (summary.final_cost > solved) {
@@ -138,6 +139,7 @@ int main(int argc, char** argv) {
     cout << summary.FullReport() << "\n";
   } else {
     cout << "solution seems good, sparsifying..." << endl;
+    options.max_num_iterations = 25;
     greedy_discrete(options,problem,x,solved,true);
     greedy_discrete(options,problem,x,solved,false);
   }
