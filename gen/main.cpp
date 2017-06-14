@@ -210,34 +210,39 @@ int main(int argc, char** argv) {
   options.minimizer_progress_to_stdout = true;
   Solver::Summary summary;
   Solve(options, &problem, &summary);
-  cout << summary.FullReport() << "\n";
 
   options.minimizer_type = LINE_SEARCH;
   options.max_num_iterations = iterations_line_fine;
   Solve(options, &problem, &summary);
-  cout << summary.FullReport() << "\n";
+
+  {
+    ofstream out("out_dense.txt");
+    out.precision(numeric_limits<double>::max_digits10);
+    copy(x,x+N,ostream_iterator<double>(out,"\n"));
+  }
 
   if (summary.final_cost > attempt_sparse_thresh) {
     cout << "accuracy fail, not sparsifying" << endl;
     cout << summary.FullReport() << "\n";
-  } else {
-    cout << "solution seems good, sparsifying..." << endl;
-    options.minimizer_progress_to_stdout = false;
-
-    options.minimizer_type = LINE_SEARCH;
-    options.max_num_iterations = iterations_line_tiny;
-    checkpoint_iter = iterations_line_checkpoint;
-    checkpoint_ok = checkpoint;
-
-    /* options.minimizer_type = TRUST_REGION; */
-    /* options.max_num_iterations = iterations_trust_tiny; */
-    /* checkpoint_iter = iterations_trust_checkpoint; */
-    /* checkpoint_ok = checkpoint; */
-
-    greedy_discrete(options,problem,x,solved,DM_ZERO);
-    greedy_discrete(options,problem,x,solved,DM_INTEGER);
-    greedy_discrete(options,problem,x,solved,DM_RATIONAL);
+    return 0;
   }
+
+  cout << "solution seems good, sparsifying..." << endl;
+  options.minimizer_progress_to_stdout = false;
+
+  options.minimizer_type = LINE_SEARCH;
+  options.max_num_iterations = iterations_line_tiny;
+  checkpoint_iter = iterations_line_checkpoint;
+  checkpoint_ok = checkpoint;
+
+  /* options.minimizer_type = TRUST_REGION; */
+  /* options.max_num_iterations = iterations_trust_tiny; */
+  /* checkpoint_iter = iterations_trust_checkpoint; */
+  /* checkpoint_ok = checkpoint; */
+
+  greedy_discrete(options,problem,x,solved,DM_ZERO);
+  greedy_discrete(options,problem,x,solved,DM_INTEGER);
+  greedy_discrete(options,problem,x,solved,DM_RATIONAL);
 
   ofstream out("out.txt");
   out.precision(numeric_limits<double>::max_digits10);
