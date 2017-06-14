@@ -187,11 +187,11 @@ int main(int argc, char** argv) {
     cout << "solution seems good, sparsifying..." << endl;
     options.minimizer_progress_to_stdout = false;
     options.max_num_iterations = 30;
-    checkpoint_iter = 10;
+    checkpoint_iter = 5;
     checkpoint_ok = 1e-4;
     greedy_discrete(options,problem,x,solved,DM_ZERO);
     options.max_num_iterations = 15;
-    checkpoint_iter = 4;
+    checkpoint_iter = 3;
     greedy_discrete(options,problem,x,solved,DM_INTEGER);
     greedy_discrete(options,problem,x,solved,DM_RATIONAL);
   }
