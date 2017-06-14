@@ -11,7 +11,7 @@ using namespace ceres;
 using namespace std;
 
 const int num_relax = 50;
-double alphastart = 0.01;
+double alphastart = 0.02;
 double sqalpha;
 
 double solved = 1e-4;
@@ -176,7 +176,8 @@ int main(int argc, char** argv) {
   }
   sqalpha = 0;
   solved = 1e-9;
-  options.max_num_iterations = 5000;
+  options.max_num_iterations = 2500;
+  options.minimizer_progress_to_stdout = true;
   Solver::Summary summary;
   Solve(options, &problem, &summary);
   if (summary.final_cost > solved) {
@@ -184,6 +185,7 @@ int main(int argc, char** argv) {
     cout << summary.FullReport() << "\n";
   } else {
     cout << "solution seems good, sparsifying..." << endl;
+    options.minimizer_progress_to_stdout = false;
     options.max_num_iterations = 30;
     checkpoint_iter = 10;
     checkpoint_ok = 1e-4;
