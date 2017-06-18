@@ -165,10 +165,16 @@ int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);
 
   double x[N];
-  random_device rd;
-  mt19937 gen(rd());
-  uniform_real_distribution<> uni(0,1);
-  generate_n(x,N,[&] {return uni(gen);});
+  if (argc == 1) {
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_real_distribution<> uni(0,1);
+    generate_n(x,N,[&] {return uni(gen);});
+  } else {
+    ifstream in(argv[1]);
+    for (int i=0; i<N; ++i)
+      in >> x[i];
+  }
 
   Problem problem;
   AddToProblem(problem,x);
