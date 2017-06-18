@@ -101,7 +101,6 @@ pair<int,int> rational_approximation(double e, double eps) {
   double arg = e;
   bool minus = e < 0;
   if (minus) e = -e;
-  /* vector<int> a; */
   int h=int(e),hp=1,k=1,kp=0;
   e -= int(e); e = 1/e;
   while (std::abs(arg-h/(double)k) > eps) {
@@ -190,19 +189,21 @@ int main(int argc, char** argv) {
   auto solvedstop = make_unique<SolvedCallback>();
   options.callbacks.push_back(solvedstop.get());
 
-  options.minimizer_type = TRUST_REGION;
-  options.max_num_iterations = iterations_trust_rough;
-  options.function_tolerance = ftol_rough;
-  checkpoint_iter = -1;
-  for (int i=num_relax; i>=0; --i) {
-    sqalpha = std::sqrt(alphastart * i/(double) num_relax);
-    Solver::Summary summary;
-    cout << "forcing coefficient " << (sqalpha * sqalpha) << " cost ";
-    cout.flush();
-    Solve(options, &problem, &summary);
-    /* cout << summary.FullReport() << "\n"; */
-    double cost; problem.Evaluate(eopts,&cost,0,0,0);
-    cout << cost << endl;
+  if (argc == 1) {
+    options.minimizer_type = TRUST_REGION;
+    options.max_num_iterations = iterations_trust_rough;
+    options.function_tolerance = ftol_rough;
+    checkpoint_iter = -1;
+    for (int i=num_relax; i>=0; --i) {
+      sqalpha = std::sqrt(alphastart * i/(double) num_relax);
+      Solver::Summary summary;
+      cout << "forcing coefficient " << (sqalpha * sqalpha) << " cost ";
+      cout.flush();
+      Solve(options, &problem, &summary);
+      /* cout << summary.FullReport() << "\n"; */
+      double cost; problem.Evaluate(eopts,&cost,0,0,0);
+      cout << cost << endl;
+    }
   }
   sqalpha = 0; // TODO should remove forcing terms?
   options.function_tolerance = ftol;
