@@ -233,15 +233,20 @@ int main(int argc, char** argv) {
   options.max_num_iterations = iterations_line_fine;
   Solve(options, &problem, &summary);
 
-  {
+  if (tostdout) {
+    copy(x,x+N,ostream_iterator<double>(cout," "));
+    cout << endl;
+  } else {
     ofstream out("out_dense.txt");
     out.precision(numeric_limits<double>::max_digits10);
     copy(x,x+N,ostream_iterator<double>(out,"\n"));
   }
 
   if (summary.final_cost > attempt_sparse_thresh) {
-    cout << "accuracy fail, not sparsifying" << endl;
-    cout << summary.FullReport() << "\n";
+    if (verbose) {
+      cout << "accuracy fail, not sparsifying" << endl;
+      cout << summary.FullReport() << "\n";
+    }
     return 1;
   }
 
@@ -263,7 +268,8 @@ int main(int argc, char** argv) {
   greedy_discrete(options,problem,x,solved,DM_RATIONAL);
 
   if (tostdout) {
-    copy(x,x+N,ostream_iterator<double>(cout,"\n"));
+    copy(x,x+N,ostream_iterator<double>(cout," "));
+    cout << endl;
   } else {
     ofstream out("out.txt");
     out.precision(numeric_limits<double>::max_digits10);
