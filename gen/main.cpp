@@ -12,7 +12,8 @@ using namespace std;
 
 const bool verbose = true;
 const bool tostdout = false;
-const bool attemptsparse = true;
+const bool attemptsparse = false; 
+// worsens solutions now, due to behavior of attempt_sparse_thresh
 
 const double ftol = 1e-13;
 const double gtol = 1e-13;
@@ -23,7 +24,7 @@ const double alphastart = 0.02;
 const double ftol_rough = 1e-4;
 const double abort_worse = 1e-3;
 
-const double solved_fine = 1e-8;
+const double solved_fine = 1e-9;
 const double attempt_sparse_thresh = 1e-7;
 
 // parameters for finding an initial solution
