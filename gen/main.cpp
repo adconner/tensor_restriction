@@ -11,6 +11,7 @@ using namespace ceres;
 using namespace std;
 
 const bool verbose = true;
+const bool tostdout = false;
 
 const double ftol = 1e-13;
 const double gtol = 1e-13;
@@ -259,8 +260,12 @@ int main(int argc, char** argv) {
   greedy_discrete(options,problem,x,solved,DM_INTEGER);
   greedy_discrete(options,problem,x,solved,DM_RATIONAL);
 
-  ofstream out("out.txt");
-  out.precision(numeric_limits<double>::max_digits10);
-  copy(x,x+N,ostream_iterator<double>(out,"\n"));
+  if (tostdout) {
+    copy(x,x+N,ostream_iterator<double>(cout,"\n"));
+  } else {
+    ofstream out("out.txt");
+    out.precision(numeric_limits<double>::max_digits10);
+    copy(x,x+N,ostream_iterator<double>(out,"\n"));
+  }
   return 0;
 }
