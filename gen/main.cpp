@@ -10,9 +10,9 @@
 using namespace ceres;
 using namespace std;
 
-const bool verbose = false;
-const bool tostdout = true;
-const bool attemptsparse = false; 
+const bool verbose = true;
+const bool tostdout = false;
+const bool attemptsparse = true; 
 
 const double ftol = 1e-13;
 const double gtol = 1e-13;
@@ -36,8 +36,8 @@ const int iterations_line_fine = 10000;
 const double checkpoint = 0.5;
 const int iterations_trust_checkpoint = 5;
 const int iterations_line_checkpoint = 30;
-const int iterations_trust_tiny = 30;
-const int iterations_line_tiny = 100;
+const int iterations_trust_tiny = 60;
+const int iterations_line_tiny = 200;
 
 // control variables
 double sqalpha; // square root of forcing coeffient
@@ -126,8 +126,9 @@ enum DiscreteMode {
   DM_ZERO, DM_INTEGER, DM_RATIONAL
 };
 
-void greedy_discrete(const Solver::Options & opts, Problem &p, double *x, 
-    double solved = 1e-2, DiscreteMode dm=DM_ZERO, const int faillimit = -1) {
+void greedy_discrete(Problem &p, double *x, 
+    const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
+    DiscreteMode dm=DM_ZERO, const int faillimit = -1) {
   const int n = p.NumParameters();
   while (true) {
     vector<tuple<double,double,int> > vals(n);
@@ -155,7 +156,8 @@ void greedy_discrete(const Solver::Options & opts, Problem &p, double *x,
         p.SetParameterBlockConstant(x+get<2>(vals[i]));
         Solver::Summary summary;
         Solve(opts,&p,&summary);
-        if (summary.final_cost <= attempt_sparse_thresh) {
+        double icost; p.Evaluate(eopts,&icost,0,0,0);
+        if (summary.final_cost <= std::max(icost,solved)) {
           if (verbose) cout << "success" << endl;
           goto found;
         }
@@ -269,9 +271,9 @@ int main(int argc, char** argv) {
   /* checkpoint_iter = iterations_trust_checkpoint; */
   /* checkpoint_ok = checkpoint; */
 
-  greedy_discrete(options,problem,x,solved,DM_ZERO,10);
-  greedy_discrete(options,problem,x,solved,DM_INTEGER,10);
-  greedy_discrete(options,problem,x,solved,DM_RATIONAL,10);
+  greedy_discrete(problem,x,options,eopts,DM_ZERO,10);
+  greedy_discrete(problem,x,options,eopts,DM_INTEGER,10);
+  greedy_discrete(problem,x,options,eopts,DM_RATIONAL,10);
 
   if (tostdout) {
     cout.precision(numeric_limits<double>::max_digits10);
