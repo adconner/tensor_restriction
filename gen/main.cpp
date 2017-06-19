@@ -12,6 +12,7 @@ using namespace std;
 
 const bool verbose = true;
 const bool tostdout = false;
+const bool attemptsparse = true;
 
 const double ftol = 1e-13;
 const double gtol = 1e-13;
@@ -23,7 +24,7 @@ const double ftol_rough = 1e-4;
 const double abort_worse = 1e-3;
 
 const double solved_fine = 1e-8;
-const double attempt_sparse_thresh = 5e-5;
+const double attempt_sparse_thresh = 1e-7;
 
 // parameters for finding an initial solution
 const int iterations_trust_rough = 200;
@@ -126,7 +127,7 @@ enum DiscreteMode {
 };
 
 void greedy_discrete(const Solver::Options & opts, Problem &p, double *x, 
-    double solved = 1e-2, DiscreteMode dm=DM_ZERO) {
+    double solved = 1e-2, DiscreteMode dm=DM_ZERO, const int faillimit = -1) {
   const int n = p.NumParameters();
   while (true) {
     vector<tuple<double,double,int> > vals(n);
@@ -140,6 +141,7 @@ void greedy_discrete(const Solver::Options & opts, Problem &p, double *x,
       vals[i] = make_tuple(std::abs(x[i]-approx),approx,i);
     }
     sort(vals.begin(),vals.end());
+    int fails = faillimit;
     for (int i=0; i<n; ++i) {
       if (dm != DM_ZERO && get<0>(vals[i]) > 0.5) break;
       if (!p.IsParameterBlockConstant(x+get<2>(vals[i]))) {
@@ -159,6 +161,7 @@ void greedy_discrete(const Solver::Options & opts, Problem &p, double *x,
         }
         /* cout << "fail" << endl << summary.BriefReport() << endl; */
         if (verbose) cout << "fail" << endl;
+        if (faillimit > 0 && fails-- == 0) break;
         p.SetParameterBlockVariable(x+get<2>(vals[i]));
         copy(sav.begin(),sav.end(),x);
       }
@@ -250,6 +253,8 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  if (!attemptsparse) return 0;
+
   if (verbose) cout << "solution seems good, sparsifying..." << endl;
   options.minimizer_progress_to_stdout = false;
 
@@ -263,9 +268,9 @@ int main(int argc, char** argv) {
   /* checkpoint_iter = iterations_trust_checkpoint; */
   /* checkpoint_ok = checkpoint; */
 
-  greedy_discrete(options,problem,x,solved,DM_ZERO);
-  greedy_discrete(options,problem,x,solved,DM_INTEGER);
-  greedy_discrete(options,problem,x,solved,DM_RATIONAL);
+  greedy_discrete(options,problem,x,solved,DM_ZERO,10);
+  greedy_discrete(options,problem,x,solved,DM_INTEGER,10);
+  greedy_discrete(options,problem,x,solved,DM_RATIONAL,10);
 
   if (tostdout) {
     copy(x,x+N,ostream_iterator<double>(cout," "));
