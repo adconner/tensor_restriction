@@ -10,9 +10,11 @@
 using namespace ceres;
 using namespace std;
 
-const double ftol = 1e-9;
-const double gtol = 1e-9;
-const double ptol = 1e-9;
+const bool verbose = true;
+
+const double ftol = 1e-13;
+const double gtol = 1e-13;
+const double ptol = 1e-13;
 
 const int num_relax = 30;
 const double alphastart = 0.02;
@@ -51,7 +53,7 @@ void solver_opts(Solver::Options &options) {
   options.use_inner_iterations = true;
 
   // line search options
-  options.line_search_direction_type = BFGS;
+  /* options.line_search_direction_type = BFGS; */
   /* options.line_search_type = ARMIJO; */
   /* options.nonlinear_conjugate_gradient_type = POLAK_RIBIERE; */
   /* options.nonlinear_conjugate_gradient_type = HESTENES_STIEFEL; */
@@ -141,17 +143,20 @@ void greedy_discrete(const Solver::Options & opts, Problem &p, double *x,
       if (!p.IsParameterBlockConstant(x+get<2>(vals[i]))) {
         vector<double> sav(x,x+n);
         x[get<2>(vals[i])] = get<1>(vals[i]);
-        cout << "setting x[" << get<2>(vals[i]) << "] = " << x[get<2>(vals[i])] << "... ";
-        cout.flush();
+        if (verbose) {
+          cout << "setting x[" << get<2>(vals[i]) << "] = " 
+            << x[get<2>(vals[i])] << "... ";
+          cout.flush();
+        }
         p.SetParameterBlockConstant(x+get<2>(vals[i]));
         Solver::Summary summary;
         Solve(opts,&p,&summary);
         if (summary.final_cost <= attempt_sparse_thresh) {
-          cout << "success" << endl;
+          if (verbose) cout << "success" << endl;
           goto found;
         }
         /* cout << "fail" << endl << summary.BriefReport() << endl; */
-        cout << "fail" << endl;
+        if (verbose) cout << "fail" << endl;
         p.SetParameterBlockVariable(x+get<2>(vals[i]));
         copy(sav.begin(),sav.end(),x);
       }
@@ -198,12 +203,14 @@ int main(int argc, char** argv) {
     for (int i=num_relax; i>=0; --i) {
       sqalpha = std::sqrt(alphastart * i/(double) num_relax);
       Solver::Summary summary;
-      cout << "forcing coefficient " << (sqalpha * sqalpha) << " cost ";
-      cout.flush();
+      if (verbose) {
+        cout << "forcing coefficient " << (sqalpha * sqalpha) << " cost ";
+        cout.flush();
+      }
       Solve(options, &problem, &summary);
-      /* cout << summary.FullReport() << "\n"; */
+      /* if (verbose) cout << summary.FullReport() << "\n"; */
       double cost; problem.Evaluate(eopts,&cost,0,0,0);
-      cout << cost << endl;
+      if (verbose) cout << cost << endl;
     }
   }
   sqalpha = 0; // TODO should remove forcing terms?
@@ -215,7 +222,7 @@ int main(int argc, char** argv) {
   options.max_num_iterations = iterations_trust_fine;
   solved = solved_fine;
   checkpoint_iter = -1;
-  options.minimizer_progress_to_stdout = true;
+  if (verbose) options.minimizer_progress_to_stdout = true;
   Solver::Summary summary;
   Solve(options, &problem, &summary);
 
@@ -235,7 +242,7 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  cout << "solution seems good, sparsifying..." << endl;
+  if (verbose) cout << "solution seems good, sparsifying..." << endl;
   options.minimizer_progress_to_stdout = false;
 
   options.minimizer_type = LINE_SEARCH;
