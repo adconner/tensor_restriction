@@ -20,8 +20,9 @@ const double ptol = 1e-13;
 const int num_relax = 30;
 const double alphastart = 0.02;
 const double ftol_rough = 1e-4;
+const double abort_worse = 1e-3;
 
-const double solved_fine = 1e-7;
+const double solved_fine = 1e-8;
 const double attempt_sparse_thresh = 5e-5;
 
 // parameters for finding an initial solution
@@ -217,7 +218,8 @@ int main(int argc, char** argv) {
   sqalpha = 0; // TODO should remove forcing terms?
   options.function_tolerance = ftol;
 
-  // should also cancel if cost not small enough
+  double cost; problem.Evaluate(eopts,&cost,0,0,0);
+  if (cost > abort_worse) return 2;
 
   options.minimizer_type = TRUST_REGION;
   options.max_num_iterations = iterations_trust_fine;
@@ -240,7 +242,7 @@ int main(int argc, char** argv) {
   if (summary.final_cost > attempt_sparse_thresh) {
     cout << "accuracy fail, not sparsifying" << endl;
     cout << summary.FullReport() << "\n";
-    return 0;
+    return 1;
   }
 
   if (verbose) cout << "solution seems good, sparsifying..." << endl;
