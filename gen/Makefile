@@ -5,16 +5,16 @@ LDFLAGS=-lceres -lcxsparse -lcholmod -lumfpack -lamd -lcamd -lcolamd -lccolamd -
 CC=clang
 CXX=clang++
 
-cxxfiles=$(wildcard *.cpp)
+ofiles=prob.o
+targets=main check
 
-target=main
+all: $(targets)
 
-all: $(target)
-
-$(target): $(patsubst %.cpp,%.o,$(cxxfiles))
+%: %.o $(ofiles)
 	$(CXX) $^ -o $@ $(LDFLAGS) 
 
 main.o: main.cpp prob.h
+check.o: check.cpp prob.h
 
 clean:
-	rm -f $(patsubst %.cpp,%.o,$(cxxfiles)) $(target)
+	rm -f $(patsubst %.cpp,%.o,$(wildcard *.cpp)) $(target)

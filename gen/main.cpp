@@ -10,10 +10,9 @@
 using namespace ceres;
 using namespace std;
 
-const bool verbose = true;
-const bool tostdout = false;
+const bool verbose = false;
+const bool tostdout = true;
 const bool attemptsparse = false; 
-// worsens solutions now, due to behavior of attempt_sparse_thresh
 
 const double ftol = 1e-13;
 const double gtol = 1e-13;
@@ -47,8 +46,8 @@ double checkpoint_ok; // stop iteration if have not converged to at least here
 double checkpoint_iter; // checkpoint iteration number
 
 void solver_opts(Solver::Options &options) {
-  options.num_threads = 4;
-  options.num_linear_solver_threads = 4;
+  options.num_threads = 1;
+  options.num_linear_solver_threads = 1;
 
   /* options.minimizer_type = LINE_SEARCH; */
   // trust region options
