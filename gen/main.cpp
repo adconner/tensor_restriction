@@ -237,6 +237,7 @@ int main(int argc, char** argv) {
   Solve(options, &problem, &summary);
 
   if (tostdout) {
+    cout.precision(numeric_limits<double>::max_digits10);
     copy(x,x+N,ostream_iterator<double>(cout," "));
     cout << endl;
   } else {
@@ -273,6 +274,7 @@ int main(int argc, char** argv) {
   greedy_discrete(options,problem,x,solved,DM_RATIONAL,10);
 
   if (tostdout) {
+    cout.precision(numeric_limits<double>::max_digits10);
     copy(x,x+N,ostream_iterator<double>(cout," "));
     cout << endl;
   } else {
