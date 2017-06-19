@@ -47,7 +47,7 @@ void solver_opts(Solver::Options &options) {
   /* options.minimizer_type = LINE_SEARCH; */
   // trust region options
   options.trust_region_strategy_type = LEVENBERG_MARQUARDT;
-  /* options.use_nonmonotonic_steps = true; */
+  options.use_nonmonotonic_steps = true;
   options.use_inner_iterations = true;
 
   // line search options
@@ -150,7 +150,8 @@ void greedy_discrete(const Solver::Options & opts, Problem &p, double *x,
           cout << "success" << endl;
           goto found;
         }
-        cout << "fail" << endl << summary.BriefReport() << endl;
+        /* cout << "fail" << endl << summary.BriefReport() << endl; */
+        cout << "fail" << endl;
         p.SetParameterBlockVariable(x+get<2>(vals[i]));
         copy(sav.begin(),sav.end(),x);
       }
@@ -181,19 +182,19 @@ int main(int argc, char** argv) {
   problem.GetResidualBlocks(&eopts.residual_blocks);
   // save residuals we care about before adding other regularization
 
-  for (int i=0; i<N; ++i) {
-    problem.AddResidualBlock(new NoBorderRank, NULL, &x[i]);
-  }
-
   Solver::Options options; solver_opts(options);
   auto solvedstop = make_unique<SolvedCallback>();
   options.callbacks.push_back(solvedstop.get());
 
   if (argc == 1) {
+    for (int i=0; i<N; ++i) {
+      problem.AddResidualBlock(new NoBorderRank, NULL, &x[i]);
+    }
     options.minimizer_type = TRUST_REGION;
     options.max_num_iterations = iterations_trust_rough;
     options.function_tolerance = ftol_rough;
     checkpoint_iter = -1;
+    // dogleg for positive alpha?
     for (int i=num_relax; i>=0; --i) {
       sqalpha = std::sqrt(alphastart * i/(double) num_relax);
       Solver::Summary summary;
