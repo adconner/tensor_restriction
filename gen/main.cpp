@@ -158,7 +158,7 @@ void greedy_discrete(Problem &p, double *x,
         double icost; p.Evaluate(eopts,&icost,0,0,0);
         x[get<2>(vals[i])] = get<1>(vals[i]);
         if (verbose) {
-          cout << "setting x[" << get<2>(vals[i]) << "] = " 
+          cout << "cost " << icost << " setting x[" << get<2>(vals[i]) << "] = "
             << x[get<2>(vals[i])] << "... ";
           cout.flush();
         }
@@ -171,9 +171,9 @@ void greedy_discrete(Problem &p, double *x,
         }
         /* cout << "fail" << endl << summary.BriefReport() << endl; */
         if (verbose) cout << "fail" << endl;
-        if (faillimit > 0 && fails-- == 0) break;
         p.SetParameterBlockVariable(x+get<2>(vals[i]));
         copy(sav.begin(),sav.end(),x);
+        if (faillimit > 0 && fails-- == 0) break;
       }
     }
     break;
