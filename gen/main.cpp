@@ -23,7 +23,7 @@ const double alphastart = 0.02;
 const double ftol_rough = 1e-4;
 const double abort_worse = 1e-3;
 
-const double solved_fine = 1e-9;
+const double solved_fine = 1e-10;
 const double attempt_sparse_thresh = 1e-5;
 
 // parameters for finding an initial solution
@@ -137,40 +137,51 @@ enum DiscreteMode {
 void greedy_discrete(Problem &p, double *x, 
     const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
     DiscreteMode dm=DM_ZERO, const int faillimit = -1) {
-  const int n = p.NumParameters();
   while (true) {
-    vector<tuple<double,double,int> > vals(n);
-    for (int i=0; i<n; ++i) {
-      double approx;
+    vector<tuple<double,vector<double>,int> > vals(N);
+    for (int i=0; i<N; ++i) {
+      vector<double> approx;
       switch (dm) {
-        case DM_ZERO: approx = 0; break;
-        case DM_INTEGER: approx = std::round(x[i]); break;
-        case DM_RATIONAL: approx = double_rational_approximation(x[i]); break;
+        case DM_ZERO: approx.assign(2,0); break;
+        case DM_INTEGER: 
+          transform(x+i*MULT,x+(i+1)*MULT,back_inserter(approx),[](double e) 
+              {return std::round(e);}); break;
+        case DM_RATIONAL: 
+          transform(x+i*MULT,x+(i+1)*MULT,back_inserter(approx),[](double e) 
+              {return double_rational_approximation(e);}); break;
       }
-      vals[i] = make_tuple(std::abs(x[i]-approx),approx,i);
+      double dist = 0;
+      for (int j=0; j<MULT; ++j) 
+        dist += (x[i*MULT + j] - approx[j]) * (x[i*MULT + j] - approx[j]);
+      vals[i] = make_tuple(std::sqrt(dist),approx,MULT*i);
     }
     sort(vals.begin(),vals.end());
     int fails = faillimit;
-    for (int i=0; i<n; ++i) {
+    for (int i=0; i<N; ++i) {
       if (dm != DM_ZERO && get<0>(vals[i]) > 0.5) break;
       if (!p.IsParameterBlockConstant(x+get<2>(vals[i]))) {
-        vector<double> sav(x,x+n);
+        vector<double> sav(x,x+N*MULT);
         double icost; p.Evaluate(eopts,&icost,0,0,0);
-        x[get<2>(vals[i])] = get<1>(vals[i]);
+        copy(get<1>(vals[i]).begin(),get<1>(vals[i]).end(),x+get<2>(vals[i]));
+        /* x[get<2>(vals[i])] = get<1>(vals[i]); */
         if (verbose) {
-          cout << "cost " << icost << " setting x[" << get<2>(vals[i]) << "] = "
-            << x[get<2>(vals[i])] << "... ";
+          cout << "cost " << icost << " setting "; 
+          cout << "x[" << get<2>(vals[i]) << "]";
+          if (MULT == 2) cout << ", x[" << get<2>(vals[i])+1 << "]";
+          cout << " = " << x[get<2>(vals[i])];
+          if (MULT == 2) cout << ", " << x[get<2>(vals[i])+1];
+          cout << "...";
           cout.flush();
         }
         p.SetParameterBlockConstant(x+get<2>(vals[i]));
         Solver::Summary summary;
         Solve(opts,&p,&summary);
         if (summary.final_cost <= std::max(icost,solved)) {
-          if (verbose) cout << "success" << endl;
+          if (verbose) cout << " success" << endl;
           goto found;
         }
         /* cout << "fail" << endl << summary.BriefReport() << endl; */
-        if (verbose) cout << "fail" << endl;
+        if (verbose) cout << " fail" << endl;
         p.SetParameterBlockVariable(x+get<2>(vals[i]));
         copy(sav.begin(),sav.end(),x);
         if (faillimit > 0 && fails-- == 0) break;
@@ -230,7 +241,6 @@ int main(int argc, char** argv) {
   }
   sqalpha = 0; // TODO should remove forcing terms?
   options.function_tolerance = ftol;
-
   double cost; problem.Evaluate(eopts,&cost,0,0,0);
   if (cost > abort_worse) return 2;
 
@@ -248,12 +258,12 @@ int main(int argc, char** argv) {
 
   if (tostdout) {
     cout.precision(numeric_limits<double>::max_digits10);
-    copy(x,x+N,ostream_iterator<double>(cout," "));
+    copy(x,x+MULT*N,ostream_iterator<double>(cout," "));
     cout << endl;
   } else {
     ofstream out("out_dense.txt");
     out.precision(numeric_limits<double>::max_digits10);
-    copy(x,x+N,ostream_iterator<double>(out,"\n"));
+    copy(x,x+MULT*N,ostream_iterator<double>(out,"\n"));
   }
 
   if (summary.final_cost > attempt_sparse_thresh) {
@@ -279,18 +289,18 @@ int main(int argc, char** argv) {
   /* checkpoint_iter = iterations_trust_checkpoint; */
   /* checkpoint_ok = checkpoint; */
 
-  /* greedy_discrete(problem,x,options,eopts,DM_ZERO,10); */
-  /* greedy_discrete(problem,x,options,eopts,DM_INTEGER,10); */
-  /* greedy_discrete(problem,x,options,eopts,DM_RATIONAL,10); */
+  greedy_discrete(problem,x,options,eopts,DM_ZERO,10);
+  greedy_discrete(problem,x,options,eopts,DM_INTEGER,10);
+  greedy_discrete(problem,x,options,eopts,DM_RATIONAL,10);
 
   if (tostdout) {
     cout.precision(numeric_limits<double>::max_digits10);
-    copy(x,x+N,ostream_iterator<double>(cout," "));
+    copy(x,x+MULT*N,ostream_iterator<double>(cout," "));
     cout << endl;
   } else {
     ofstream out("out.txt");
     out.precision(numeric_limits<double>::max_digits10);
-    copy(x,x+N,ostream_iterator<double>(out,"\n"));
+    copy(x,x+MULT*N,ostream_iterator<double>(out,"\n"));
   }
   return 0;
 }
