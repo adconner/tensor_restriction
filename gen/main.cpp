@@ -24,7 +24,7 @@ const double ftol_rough = 1e-4;
 const double abort_worse = 1e-3;
 
 const double solved_fine = 1e-9;
-const double attempt_sparse_thresh = 1e-7;
+const double attempt_sparse_thresh = 1e-5;
 
 // parameters for finding an initial solution
 const int iterations_trust_rough = 200;
