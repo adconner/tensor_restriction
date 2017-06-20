@@ -88,14 +88,22 @@ class SolvedCallback : public IterationCallback {
     }
 };
 
-class NoBorderRank : public SizedCostFunction<1,1> {
+class NoBorderRank : public SizedCostFunction<MULT,MULT> {
   public:
     bool Evaluate(const double* const* x,
                         double* residuals,
                         double** jacobians) const {
       residuals[0] = sqalpha * x[0][0];
-      if (jacobians && jacobians[0]) {
-        jacobians[0][0] = sqalpha;
+      if (MULT == 2) residuals[1] = sqalpha * x[0][1];
+      if (jacobians) {
+        if (jacobians[0]) {
+          jacobians[0][0] = sqalpha;
+          if (MULT == 2) {
+            jacobians[0][1] = 0;
+            jacobians[0][2] = 0;
+            jacobians[0][3] = sqalpha;
+          }
+        }
       }
       return true;
     }
@@ -176,15 +184,15 @@ void greedy_discrete(Problem &p, double *x,
 int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);
 
-  double x[N];
+  double x[MULT*N];
   if (argc == 1) {
     random_device rd;
     mt19937 gen(rd());
     uniform_real_distribution<> uni(0,1);
-    generate_n(x,N,[&] {return uni(gen);});
+    generate_n(x,MULT*N,[&] {return uni(gen);});
   } else {
     ifstream in(argv[1]);
-    for (int i=0; i<N; ++i)
+    for (int i=0; i<MULT*N; ++i)
       in >> x[i];
   }
 
@@ -200,7 +208,7 @@ int main(int argc, char** argv) {
 
   if (argc == 1) {
     for (int i=0; i<N; ++i) {
-      problem.AddResidualBlock(new NoBorderRank, NULL, &x[i]);
+      problem.AddResidualBlock(new NoBorderRank, NULL, &x[MULT*i]);
     }
     options.minimizer_type = TRUST_REGION;
     options.max_num_iterations = iterations_trust_rough;
@@ -271,9 +279,9 @@ int main(int argc, char** argv) {
   /* checkpoint_iter = iterations_trust_checkpoint; */
   /* checkpoint_ok = checkpoint; */
 
-  greedy_discrete(problem,x,options,eopts,DM_ZERO,10);
-  greedy_discrete(problem,x,options,eopts,DM_INTEGER,10);
-  greedy_discrete(problem,x,options,eopts,DM_RATIONAL,10);
+  /* greedy_discrete(problem,x,options,eopts,DM_ZERO,10); */
+  /* greedy_discrete(problem,x,options,eopts,DM_INTEGER,10); */
+  /* greedy_discrete(problem,x,options,eopts,DM_RATIONAL,10); */
 
   if (tostdout) {
     cout.precision(numeric_limits<double>::max_digits10);
