@@ -103,9 +103,9 @@ class NoBorderRank : public SizedCostFunction<1,1> {
 
 // choose a pretty coarse rational approximation by default
 pair<int,int> rational_approximation(double e, double eps) {
-  double arg = e;
   bool minus = e < 0;
   if (minus) e = -e;
+  double arg = e;
   int h=int(e),hp=1,k=1,kp=0;
   e -= int(e); e = 1/e;
   while (std::abs(arg-h/(double)k) > eps) {
@@ -147,6 +147,7 @@ void greedy_discrete(Problem &p, double *x,
       if (dm != DM_ZERO && get<0>(vals[i]) > 0.5) break;
       if (!p.IsParameterBlockConstant(x+get<2>(vals[i]))) {
         vector<double> sav(x,x+n);
+        double icost; p.Evaluate(eopts,&icost,0,0,0);
         x[get<2>(vals[i])] = get<1>(vals[i]);
         if (verbose) {
           cout << "setting x[" << get<2>(vals[i]) << "] = " 
@@ -156,7 +157,6 @@ void greedy_discrete(Problem &p, double *x,
         p.SetParameterBlockConstant(x+get<2>(vals[i]));
         Solver::Summary summary;
         Solve(opts,&p,&summary);
-        double icost; p.Evaluate(eopts,&icost,0,0,0);
         if (summary.final_cost <= std::max(icost,solved)) {
           if (verbose) cout << "success" << endl;
           goto found;
