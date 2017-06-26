@@ -23,7 +23,7 @@ const double alphastart = 0.02;
 const double ftol_rough = 1e-4;
 const double abort_worse = 1e-3;
 
-const double solved_fine = 1e-10;
+const double solved_fine = 1e-25;
 const double attempt_sparse_thresh = 1e-5;
 
 // parameters for finding an initial solution
@@ -53,7 +53,7 @@ void solver_opts(Solver::Options &options) {
   // trust region options
   options.trust_region_strategy_type = LEVENBERG_MARQUARDT;
   options.use_nonmonotonic_steps = true;
-  options.use_inner_iterations = true;
+  /* options.use_inner_iterations = true; */
 
   // line search options
   /* options.line_search_direction_type = BFGS; */
@@ -153,7 +153,7 @@ void greedy_discrete(Problem &p, double *x,
       double dist = 0;
       for (int j=0; j<MULT; ++j) 
         dist += (x[i*MULT + j] - approx[j]) * (x[i*MULT + j] - approx[j]);
-      vals[i] = make_tuple(std::sqrt(dist),approx,MULT*i);
+      vals[i] = make_tuple(std::sqrt(dist),move(approx),MULT*i);
     }
     sort(vals.begin(),vals.end());
     int fails = faillimit;
@@ -176,6 +176,7 @@ void greedy_discrete(Problem &p, double *x,
         p.SetParameterBlockConstant(x+get<2>(vals[i]));
         Solver::Summary summary;
         Solve(opts,&p,&summary);
+        /* if (summary.final_cost <= icost) { */
         if (summary.final_cost <= std::max(icost,solved)) {
           if (verbose) cout << " success" << endl;
           goto found;
@@ -242,7 +243,10 @@ int main(int argc, char** argv) {
   sqalpha = 0; // TODO should remove forcing terms?
   options.function_tolerance = ftol;
   double cost; problem.Evaluate(eopts,&cost,0,0,0);
-  if (cost > abort_worse) return 2;
+  if (cost > abort_worse) {
+    if (verbose) cout << "cost " << cost << " not good enough to refine. Aborting" << endl;
+    return 2;
+  }
 
   options.minimizer_type = TRUST_REGION;
   options.max_num_iterations = iterations_trust_fine;
@@ -251,6 +255,7 @@ int main(int argc, char** argv) {
   if (verbose) options.minimizer_progress_to_stdout = true;
   Solver::Summary summary;
   Solve(options, &problem, &summary);
+  /* cout << summary.FullReport() << endl; */
 
   options.minimizer_type = LINE_SEARCH;
   options.max_num_iterations = iterations_line_fine;
