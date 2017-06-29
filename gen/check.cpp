@@ -17,7 +17,8 @@ int main(int argc, char** argv) {
 
   double x[N];
   Problem problem;
-  AddToProblem(problem,x);
+  ceres::ParameterBlockOrdering pbo;
+  AddToProblem(problem,pbo,x);
   Problem::EvaluateOptions eopts;
   problem.GetResidualBlocks(&eopts.residual_blocks);
 

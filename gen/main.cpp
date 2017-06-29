@@ -209,13 +209,13 @@ int main(int argc, char** argv) {
   }
 
   Problem problem;
-  Solver::Options options;
-  AddToProblem(problem,options,x);
+  ceres::ParameterBlockOrdering pbo;
+  AddToProblem(problem,pbo,x);
   Problem::EvaluateOptions eopts;
   problem.GetResidualBlocks(&eopts.residual_blocks);
   // save residuals we care about before adding other regularization
 
-  solver_opts(options);
+  Solver::Options options; solver_opts(options);
   auto solvedstop = make_unique<SolvedCallback>();
   options.callbacks.push_back(solvedstop.get());
 
