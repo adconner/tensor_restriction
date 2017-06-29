@@ -53,7 +53,7 @@ void solver_opts(Solver::Options &options) {
   // trust region options
   options.trust_region_strategy_type = LEVENBERG_MARQUARDT;
   options.use_nonmonotonic_steps = true;
-  /* options.use_inner_iterations = true; */
+  options.use_inner_iterations = true;
 
   // line search options
   /* options.line_search_direction_type = BFGS; */
@@ -209,12 +209,13 @@ int main(int argc, char** argv) {
   }
 
   Problem problem;
-  AddToProblem(problem,x);
+  Solver::Options options;
+  AddToProblem(problem,options,x);
   Problem::EvaluateOptions eopts;
   problem.GetResidualBlocks(&eopts.residual_blocks);
   // save residuals we care about before adding other regularization
 
-  Solver::Options options; solver_opts(options);
+  solver_opts(options);
   auto solvedstop = make_unique<SolvedCallback>();
   options.callbacks.push_back(solvedstop.get());
 
