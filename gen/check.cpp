@@ -10,6 +10,7 @@
 
 using namespace ceres;
 using namespace std;
+double cost_thresh = 1e-23;
 
 int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);
@@ -28,7 +29,8 @@ int main(int argc, char** argv) {
     for (int i=0; i<N; ++i)
       in >> x[i];
     double cost; problem.Evaluate(eopts,&cost,0,0,0);
-    cout << cost << endl;
+    if (cost < cost_thresh)
+      cout << line << endl;
   }
 
   return 0;
