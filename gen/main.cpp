@@ -13,6 +13,7 @@ using namespace std;
 const bool verbose = true;
 const bool tostdout = false;
 const bool attemptsparse = true; 
+const bool force = true;
 
 const double ftol = 1e-13;
 const double gtol = 1e-13;
@@ -27,17 +28,13 @@ const double solved_fine = 1e-25;
 const double attempt_sparse_thresh = 1e-5;
 
 // parameters for finding an initial solution
-const int iterations_trust_rough = 200;
-const int iterations_trust_fine = 2500;
-const int iterations_line_rough = 700;
-const int iterations_line_fine = 10000;
+const int iterations_rough = 200;
+const int iterations_fine = 2500;
 
 // parameters for descretization
 const double checkpoint = 0.5;
-const int iterations_trust_checkpoint = 5;
-const int iterations_line_checkpoint = 30;
-const int iterations_trust_tiny = 60;
-const int iterations_line_tiny = 200;
+const int iterations_checkpoint = 5;
+const int iterations_tiny = 60;
 
 // control variables
 double sqalpha; // square root of forcing coeffient
@@ -63,7 +60,7 @@ void solver_opts(Solver::Options &options) {
 
   // linear solver options
   options.linear_solver_type = SPARSE_NORMAL_CHOLESKY;
-  options.dynamic_sparsity = true; // since solutions are typically sparse?
+  /* options.dynamic_sparsity = true; // since solutions are typically sparse? */
   /* options.use_postordering = true; */
 
   /* options.linear_solver_type = DENSE_QR; */
@@ -219,14 +216,15 @@ int main(int argc, char** argv) {
   auto solvedstop = make_unique<SolvedCallback>();
   options.callbacks.push_back(solvedstop.get());
 
-  if (argc == 1) {
+  if (force) {
     for (int i=0; i<N; ++i) {
       problem.AddResidualBlock(new NoBorderRank, NULL, &x[MULT*i]);
     }
     options.minimizer_type = TRUST_REGION;
-    options.max_num_iterations = iterations_trust_rough;
+    options.max_num_iterations = iterations_rough;
     options.function_tolerance = ftol_rough;
     checkpoint_iter = -1;
+    /* options.minimizer_progress_to_stdout=true; */
     // dogleg for positive alpha?
     for (int i=num_relax; i>=0; --i) {
       sqalpha = std::sqrt(alphastart * i/(double) num_relax);
@@ -250,17 +248,13 @@ int main(int argc, char** argv) {
   }
 
   options.minimizer_type = TRUST_REGION;
-  options.max_num_iterations = iterations_trust_fine;
+  options.max_num_iterations = iterations_fine;
   solved = solved_fine;
   checkpoint_iter = -1;
   if (verbose) options.minimizer_progress_to_stdout = true;
   Solver::Summary summary;
   Solve(options, &problem, &summary);
   /* cout << summary.FullReport() << endl; */
-
-  options.minimizer_type = LINE_SEARCH;
-  options.max_num_iterations = iterations_line_fine;
-  Solve(options, &problem, &summary);
 
   if (tostdout) {
     cout.precision(numeric_limits<double>::max_digits10);
@@ -285,15 +279,10 @@ int main(int argc, char** argv) {
   if (verbose) cout << "solution seems good, sparsifying..." << endl;
   options.minimizer_progress_to_stdout = false;
 
-  options.minimizer_type = LINE_SEARCH;
-  options.max_num_iterations = iterations_line_tiny;
-  checkpoint_iter = iterations_line_checkpoint;
+  options.minimizer_type = TRUST_REGION;
+  options.max_num_iterations = iterations_tiny;
+  checkpoint_iter = iterations_checkpoint;
   checkpoint_ok = checkpoint;
-
-  /* options.minimizer_type = TRUST_REGION; */
-  /* options.max_num_iterations = iterations_trust_tiny; */
-  /* checkpoint_iter = iterations_trust_checkpoint; */
-  /* checkpoint_ok = checkpoint; */
 
   greedy_discrete(problem,x,options,eopts,DM_ZERO,10);
   greedy_discrete(problem,x,options,eopts,DM_INTEGER,10);
