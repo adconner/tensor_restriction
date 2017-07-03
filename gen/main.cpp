@@ -113,14 +113,12 @@ class Zero : public SizedCostFunction<MULT,MULT> {
                         double** jacobians) const {
       residuals[0] = x[0][0];
       if (MULT == 2) residuals[1] = x[0][1];
-      if (jacobians) {
-        if (jacobians[0]) {
-          jacobians[0][0] = 1;
-          if (MULT == 2) {
-            jacobians[0][1] = 0;
-            jacobians[0][2] = 0;
-            jacobians[0][3] = 1;
-          }
+      if (jacobians && jacobians[0]) {
+        jacobians[0][0] = 1;
+        if (MULT == 2) {
+          jacobians[0][1] = 0;
+          jacobians[0][2] = 0;
+          jacobians[0][3] = 1;
         }
       }
       return true;
@@ -164,6 +162,89 @@ void greedy_discrete(Problem &p, double *x,
         }
         if (verbose) cout << " fail" << endl;
         p.SetParameterBlockVariable(x+vals[i].second);
+        copy(sav.begin(),sav.end(),x);
+        if (faillimit > 0 && fails-- == 0) break;
+      }
+    }
+    break;
+    found:;
+  }
+}
+
+class LinearCombination : public SizedCostFunction<MULT,MULT,MULT> {
+  public:
+    LinearCombination(double _a, double _b) : a(_a), b(_b) {}
+    bool Evaluate(const double* const* x,
+                        double* residuals,
+                        double** jacobians) const {
+      residuals[0] = a*x[0][0] + b*x[1][0];
+      if (MULT == 2) residuals[1] = a*x[0][1] + b*x[1][1];
+      if (jacobians) {
+        if (jacobians[0]) {
+          jacobians[0][0] = a;
+          if (MULT == 2) {
+            jacobians[0][1] = 0;
+            jacobians[0][2] = 0;
+            jacobians[0][3] = a;
+          }
+        }
+        if (jacobians[1]) {
+          jacobians[1][0] = b;
+          if (MULT == 2) {
+            jacobians[1][1] = 0;
+            jacobians[1][2] = 0;
+            jacobians[1][3] = b;
+          }
+        }
+      }
+      return true;
+    }
+    double a,b;
+};
+
+void greedy_discrete_pairs(Problem &p, double *x, 
+    const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
+    const int faillimit = -1) {
+  set<pair<int,int> > fixed;
+  while (true) {
+    vector<pair<double,pair<int,int> > > vals(N * (N-1) / 2);
+    int ix = 0;
+    for (int i=0; i<N; ++i) {
+      for (int j=i+1; j<N; ++j) {
+        vals[ix].second.first = i*MULT;
+        vals[ix].second.second = j*MULT;
+        for (int k=0; k<MULT; ++k) {
+          double dx = x[i*MULT + k] - x[j*MULT + k];
+          vals[ix].first += dx*dx;
+        }
+        ix++;
+      }
+    }
+    sort(vals.begin(),vals.end());
+    int fails = faillimit;
+    for (int i=0; i<vals.size(); ++i) {
+      if (!p.IsParameterBlockConstant(x+vals[i].second.first) &&
+          !p.IsParameterBlockConstant(x+vals[i].second.second) && 
+          !fixed.count(vals[i].second)) {
+        vector<double> sav(x,x+N*MULT);
+        double icost; p.Evaluate(eopts,&icost,0,0,0);
+        if (verbose) {
+          cout << "cost " << icost << " attempting to set "; 
+          cout << "x[" << vals[i].second.first << "] = x[" 
+            << vals[i].second.second << "]...";
+          cout.flush();
+        }
+        auto rid = p.AddResidualBlock(new LinearCombination(1,-1), NULL, 
+            {x+vals[i].second.first, x+vals[i].second.second});
+        Solver::Summary summary;
+        Solve(opts,&p,&summary);
+        if (summary.final_cost <= std::max(icost,solved)) {
+          fixed.insert(vals[i].second);
+          cout << " success" << endl;
+          goto found;
+        }
+        if (verbose) cout << " fail" << endl;
+        p.RemoveResidualBlock(rid);
         copy(sav.begin(),sav.end(),x);
         if (faillimit > 0 && fails-- == 0) break;
       }
@@ -263,11 +344,13 @@ int main(int argc, char** argv) {
   if (verbose) cout << "solution seems good, sparsifying..." << endl;
   options.minimizer_progress_to_stdout = false;
   options.minimizer_type = TRUST_REGION;
-  options.max_num_iterations = iterations_rough;
+  /* options.max_num_iterations = iterations_rough; */
+  options.max_num_iterations = iterations_tiny;
   checkpoint_iter = iterations_checkpoint;
   checkpoint_ok = checkpoint;
 
   greedy_discrete(problem,x,options,eopts,10);
+  greedy_discrete_pairs(problem,x,options,eopts,10);
 
   if (tostdout) {
     cout.precision(numeric_limits<double>::max_digits10);
