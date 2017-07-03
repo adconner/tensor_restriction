@@ -13,7 +13,8 @@ using namespace std;
 const bool verbose = true;
 const bool tostdout = false;
 const bool attemptsparse = true; 
-const bool force = true;
+const bool force_always = false;
+const bool force_random_start = true;
 
 const double ftol = 1e-13;
 const double gtol = 1e-13;
@@ -280,7 +281,7 @@ int main(int argc, char** argv) {
   auto solvedstop = make_unique<SolvedCallback>();
   options.callbacks.push_back(solvedstop.get());
 
-  if (force) {
+  if (force_always || force_random_start && argc == 1) {
     vector<ResidualBlockId> rids;
     for (int i=0; i<N; ++i) {
       rids.push_back(problem.AddResidualBlock(new NoBorderRank, NULL, &x[MULT*i]));
