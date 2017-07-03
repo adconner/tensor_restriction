@@ -106,81 +106,64 @@ class NoBorderRank : public SizedCostFunction<MULT,MULT> {
     }
 };
 
-// choose a pretty coarse rational approximation by default
-pair<int,int> rational_approximation(double e, double eps) {
-  bool minus = e < 0;
-  if (minus) e = -e;
-  double arg = e;
-  int h=int(e),hp=1,k=1,kp=0;
-  e -= int(e); e = 1/e;
-  while (std::abs(arg-h/(double)k) > eps) {
-    int ai = int(e);
-    e -= ai; e = 1/e;
-    tie(h,hp) = make_pair(h*ai+hp,h);
-    tie(k,kp) = make_pair(k*ai+kp,k);
-  }
-  return make_pair(minus ? -h : h,k);
-}
-
-double double_rational_approximation(double e, double eps = 1e-2) {
-  int h,k; tie(h,k) = rational_approximation(e,eps);
-  return h / (double)k;
-}
-
-enum DiscreteMode {
-  DM_ZERO, DM_INTEGER, DM_RATIONAL
+class Zero : public SizedCostFunction<MULT,MULT> {
+  public:
+    bool Evaluate(const double* const* x,
+                        double* residuals,
+                        double** jacobians) const {
+      residuals[0] = x[0][0];
+      if (MULT == 2) residuals[1] = x[0][1];
+      if (jacobians) {
+        if (jacobians[0]) {
+          jacobians[0][0] = 1;
+          if (MULT == 2) {
+            jacobians[0][1] = 0;
+            jacobians[0][2] = 0;
+            jacobians[0][3] = 1;
+          }
+        }
+      }
+      return true;
+    }
 };
 
 void greedy_discrete(Problem &p, double *x, 
     const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
-    DiscreteMode dm=DM_ZERO, const int faillimit = -1) {
+    const int faillimit = -1) {
   while (true) {
-    vector<tuple<double,vector<double>,int> > vals(N);
+    vector<pair<double,int> > vals(N);
     for (int i=0; i<N; ++i) {
-      vector<double> approx;
-      switch (dm) {
-        case DM_ZERO: approx.assign(2,0); break;
-        case DM_INTEGER: 
-          transform(x+i*MULT,x+(i+1)*MULT,back_inserter(approx),[](double e) 
-              {return std::round(e);}); break;
-        case DM_RATIONAL: 
-          transform(x+i*MULT,x+(i+1)*MULT,back_inserter(approx),[](double e) 
-              {return double_rational_approximation(e);}); break;
+      for (int j=0; j<MULT; ++j) {
+        vals[i].first += x[i*MULT + j] * x[i*MULT+j];
       }
-      double dist = 0;
-      for (int j=0; j<MULT; ++j) 
-        dist += (x[i*MULT + j] - approx[j]) * (x[i*MULT + j] - approx[j]);
-      vals[i] = make_tuple(std::sqrt(dist),move(approx),MULT*i);
+      vals[i].second = i*MULT;
     }
     sort(vals.begin(),vals.end());
     int fails = faillimit;
     for (int i=0; i<N; ++i) {
-      if (dm != DM_ZERO && get<0>(vals[i]) > 0.5) break;
-      if (!p.IsParameterBlockConstant(x+get<2>(vals[i]))) {
+      if (!p.IsParameterBlockConstant(x+vals[i].second)) {
         vector<double> sav(x,x+N*MULT);
         double icost; p.Evaluate(eopts,&icost,0,0,0);
-        copy(get<1>(vals[i]).begin(),get<1>(vals[i]).end(),x+get<2>(vals[i]));
-        /* x[get<2>(vals[i])] = get<1>(vals[i]); */
         if (verbose) {
-          cout << "cost " << icost << " setting "; 
-          cout << "x[" << get<2>(vals[i]) << "]";
-          if (MULT == 2) cout << ", x[" << get<2>(vals[i])+1 << "]";
-          cout << " = " << x[get<2>(vals[i])];
-          if (MULT == 2) cout << ", " << x[get<2>(vals[i])+1];
+          cout << "cost " << icost << " attempting to zero "; 
+          cout << "x[" << vals[i].second << "]";
+          if (MULT == 2) cout << ", x[" << vals[i].second + 1 << "]";
           cout << "...";
           cout.flush();
         }
-        p.SetParameterBlockConstant(x+get<2>(vals[i]));
+        auto rid = p.AddResidualBlock(new Zero, NULL, x+vals[i].second);
         Solver::Summary summary;
         Solve(opts,&p,&summary);
-        /* if (summary.final_cost <= icost) { */
+        p.RemoveResidualBlock(rid);
         if (summary.final_cost <= std::max(icost,solved)) {
-          if (verbose) cout << " success" << endl;
+          for (int j=0; j<MULT; ++j) x[vals[i].second+j] = 0;
+          p.SetParameterBlockConstant(x+vals[i].second);
+          Solve(opts,&p,&summary);
+          cout << " success" << endl;
           goto found;
         }
-        /* cout << "fail" << endl << summary.BriefReport() << endl; */
         if (verbose) cout << " fail" << endl;
-        p.SetParameterBlockVariable(x+get<2>(vals[i]));
+        p.SetParameterBlockVariable(x+vals[i].second);
         copy(sav.begin(),sav.end(),x);
         if (faillimit > 0 && fails-- == 0) break;
       }
@@ -217,8 +200,9 @@ int main(int argc, char** argv) {
   options.callbacks.push_back(solvedstop.get());
 
   if (force) {
+    vector<ResidualBlockId> rids;
     for (int i=0; i<N; ++i) {
-      problem.AddResidualBlock(new NoBorderRank, NULL, &x[MULT*i]);
+      rids.push_back(problem.AddResidualBlock(new NoBorderRank, NULL, &x[MULT*i]));
     }
     options.minimizer_type = TRUST_REGION;
     options.max_num_iterations = iterations_rough;
@@ -238,8 +222,10 @@ int main(int argc, char** argv) {
       double cost; problem.Evaluate(eopts,&cost,0,0,0);
       if (verbose) cout << cost << endl;
     }
+    for (auto rid : rids) {
+      problem.RemoveResidualBlock(rid);
+    }
   }
-  sqalpha = 0; // TODO should remove forcing terms?
   options.function_tolerance = ftol;
   double cost; problem.Evaluate(eopts,&cost,0,0,0);
   if (cost > abort_worse) {
@@ -284,9 +270,7 @@ int main(int argc, char** argv) {
   checkpoint_iter = iterations_checkpoint;
   checkpoint_ok = checkpoint;
 
-  greedy_discrete(problem,x,options,eopts,DM_ZERO,10);
-  greedy_discrete(problem,x,options,eopts,DM_INTEGER,10);
-  greedy_discrete(problem,x,options,eopts,DM_RATIONAL,10);
+  greedy_discrete(problem,x,options,eopts,10);
 
   if (tostdout) {
     cout.precision(numeric_limits<double>::max_digits10);
