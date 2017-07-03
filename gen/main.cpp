@@ -259,14 +259,11 @@ int main(int argc, char** argv) {
     }
     return 1;
   }
-
   if (!attemptsparse) return 0;
-
   if (verbose) cout << "solution seems good, sparsifying..." << endl;
   options.minimizer_progress_to_stdout = false;
-
   options.minimizer_type = TRUST_REGION;
-  options.max_num_iterations = iterations_tiny;
+  options.max_num_iterations = iterations_rough;
   checkpoint_iter = iterations_checkpoint;
   checkpoint_ok = checkpoint;
 
