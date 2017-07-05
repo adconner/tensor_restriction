@@ -15,6 +15,7 @@ const bool tostdout = false;
 const bool attemptsparse = true; 
 const bool force_always = false;
 const bool force_random_start = true;
+const bool record_iterations = true;
 
 const double ftol = 1e-13;
 const double gtol = 1e-13;
@@ -84,6 +85,17 @@ class SolvedCallback : public IterationCallback {
           && summary.cost > checkpoint_ok) return SOLVER_ABORT;
       return summary.cost < solved ? SOLVER_TERMINATE_SUCCESSFULLY : SOLVER_CONTINUE;
     }
+};
+
+class RecordCallback : public IterationCallback {
+  public:
+    RecordCallback(double *_x, ostream &_out) : x(_x), out(_out) {}
+    CallbackReturnType operator()(const IterationSummary& summary) {
+      copy(x,x+MULT*N,ostream_iterator<double>(out," ")); out << endl;
+      return SOLVER_CONTINUE;
+    }
+    double *x;
+    ostream &out;
 };
 
 class NoBorderRank : public SizedCostFunction<MULT,MULT> {
@@ -323,7 +335,16 @@ int main(int argc, char** argv) {
   checkpoint_iter = -1;
   if (verbose) options.minimizer_progress_to_stdout = true;
   Solver::Summary summary;
-  Solve(options, &problem, &summary);
+  if (record_iterations) {
+    options.update_state_every_iteration = true;
+    auto record = make_unique<RecordCallback>(x,cerr);
+    options.callbacks.push_back(record.get());
+    Solve(options, &problem, &summary);
+    options.callbacks.pop_back();
+    options.update_state_every_iteration = false;
+  } else {
+    Solve(options, &problem, &summary);
+  }
   /* cout << summary.FullReport() << endl; */
 
   if (tostdout) {
