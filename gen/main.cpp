@@ -109,21 +109,23 @@ class NoBorderRank : public SizedCostFunction<MULT,MULT> {
 
 class Zero : public SizedCostFunction<MULT,MULT> {
   public:
+    Zero(double _a) : a(_a) {}
     bool Evaluate(const double* const* x,
                         double* residuals,
                         double** jacobians) const {
-      residuals[0] = x[0][0];
-      if (MULT == 2) residuals[1] = x[0][1];
+      residuals[0] = a*x[0][0];
+      if (MULT == 2) residuals[1] = a*x[0][1];
       if (jacobians && jacobians[0]) {
-        jacobians[0][0] = 1;
+        jacobians[0][0] = a;
         if (MULT == 2) {
           jacobians[0][1] = 0;
           jacobians[0][2] = 0;
-          jacobians[0][3] = 1;
+          jacobians[0][3] = a;
         }
       }
       return true;
     }
+    double a;
 };
 
 void greedy_discrete(Problem &p, double *x, 
@@ -150,7 +152,7 @@ void greedy_discrete(Problem &p, double *x,
           cout << "...";
           cout.flush();
         }
-        auto rid = p.AddResidualBlock(new Zero, NULL, x+vals[i].second);
+        auto rid = p.AddResidualBlock(new Zero(1), NULL, x+vals[i].second);
         Solver::Summary summary;
         Solve(opts,&p,&summary);
         p.RemoveResidualBlock(rid);
@@ -281,7 +283,7 @@ int main(int argc, char** argv) {
   auto solvedstop = make_unique<SolvedCallback>();
   options.callbacks.push_back(solvedstop.get());
 
-  if (force_always || force_random_start && argc == 1) {
+  if (force_always || (force_random_start && argc == 1)) {
     vector<ResidualBlockId> rids;
     for (int i=0; i<N; ++i) {
       rids.push_back(problem.AddResidualBlock(new NoBorderRank, NULL, &x[MULT*i]));
