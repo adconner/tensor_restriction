@@ -15,7 +15,7 @@ const bool tostdout = false;
 const bool attemptsparse = true; 
 const bool force_always = false;
 const bool force_random_start = true;
-const bool record_iterations = true;
+const bool record_iterations = false;
 
 const double ftol = 1e-13;
 const double gtol = 1e-13;
@@ -51,8 +51,8 @@ void solver_opts(Solver::Options &options) {
   /* options.minimizer_type = LINE_SEARCH; */
   // trust region options
   options.trust_region_strategy_type = LEVENBERG_MARQUARDT;
-  options.use_nonmonotonic_steps = true;
-  options.use_inner_iterations = true;
+  /* options.use_nonmonotonic_steps = true; */
+  /* options.use_inner_iterations = true; */
 
   // line search options
   /* options.line_search_direction_type = BFGS; */
@@ -61,11 +61,11 @@ void solver_opts(Solver::Options &options) {
   /* options.nonlinear_conjugate_gradient_type = HESTENES_STIEFEL; */
 
   // linear solver options
-  options.linear_solver_type = SPARSE_NORMAL_CHOLESKY;
+  /* options.linear_solver_type = SPARSE_NORMAL_CHOLESKY; */
   /* options.dynamic_sparsity = true; // since solutions are typically sparse? */
   /* options.use_postordering = true; */
 
-  /* options.linear_solver_type = DENSE_QR; */
+  options.linear_solver_type = DENSE_QR;
   /* options.linear_solver_type = CGNR; */
   /* options.linear_solver_type = ITERATIVE_SCHUR; */
 
@@ -368,8 +368,8 @@ int main(int argc, char** argv) {
   if (verbose) cout << "solution seems good, sparsifying..." << endl;
   options.minimizer_progress_to_stdout = false;
   options.minimizer_type = TRUST_REGION;
-  /* options.max_num_iterations = iterations_rough; */
-  options.max_num_iterations = iterations_tiny;
+  options.max_num_iterations = iterations_rough;
+  /* options.max_num_iterations = iterations_tiny; */
   checkpoint_iter = iterations_checkpoint;
   checkpoint_ok = checkpoint;
 

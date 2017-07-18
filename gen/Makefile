@@ -7,7 +7,7 @@ LDFLAGS=-lceres -lcxsparse -lcholmod -lumfpack -lamd -lcamd -lcolamd -lccolamd -
 CC=clang
 CXX=clang++
 
-.SUFFIXES:
+# .SUFFIXES:
 
 ofiles=prob.o
 targets=main check
@@ -20,8 +20,8 @@ all: $(targets)
 main.o: main.cpp prob.h
 check.o: check.cpp prob.h
 
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) $< -c -o $@
+# %.o: %.cpp
+# 	$(CXX) $(CXXFLAGS) $< -c -o $@
 
 # clean:
 # 	rm -f $(patsubst %.cpp,%.o,$(wildcard *.cpp)) $(target)
