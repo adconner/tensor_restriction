@@ -140,6 +140,18 @@ class Zero : public SizedCostFunction<MULT,MULT> {
     double a;
 };
 
+void logsol(double *x, string fname) {
+  if (tostdout) {
+    cout.precision(numeric_limits<double>::max_digits10);
+    copy(x,x+MULT*N,ostream_iterator<double>(cout," "));
+    cout << endl;
+  } else {
+    ofstream out(fname);
+    out.precision(numeric_limits<double>::max_digits10);
+    copy(x,x+MULT*N,ostream_iterator<double>(out,"\n"));
+  }
+}
+
 void greedy_discrete(Problem &p, double *x, 
     const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
     const int faillimit = -1) {
@@ -173,6 +185,7 @@ void greedy_discrete(Problem &p, double *x,
           p.SetParameterBlockConstant(x+vals[i].second);
           Solve(opts,&p,&summary);
           cout << " success" << endl;
+          logsol(x,"out_partial.txt");
           goto found;
         }
         if (verbose) cout << " fail" << endl;
@@ -256,6 +269,7 @@ void greedy_discrete_pairs(Problem &p, double *x,
         if (summary.final_cost <= std::max(icost,solved)) {
           fixed.insert(vals[i].second);
           cout << " success" << endl;
+          logsol(x,"out_partial.txt");
           goto found;
         }
         if (verbose) cout << " fail" << endl;
@@ -347,15 +361,7 @@ int main(int argc, char** argv) {
   }
   /* cout << summary.FullReport() << endl; */
 
-  if (tostdout) {
-    cout.precision(numeric_limits<double>::max_digits10);
-    copy(x,x+MULT*N,ostream_iterator<double>(cout," "));
-    cout << endl;
-  } else {
-    ofstream out("out_dense.txt");
-    out.precision(numeric_limits<double>::max_digits10);
-    copy(x,x+MULT*N,ostream_iterator<double>(out,"\n"));
-  }
+  logsol(x,"out_dense.txt");
 
   if (summary.final_cost > attempt_sparse_thresh) {
     if (verbose) {
@@ -376,14 +382,7 @@ int main(int argc, char** argv) {
   greedy_discrete(problem,x,options,eopts,10);
   greedy_discrete_pairs(problem,x,options,eopts,10);
 
-  if (tostdout) {
-    cout.precision(numeric_limits<double>::max_digits10);
-    copy(x,x+MULT*N,ostream_iterator<double>(cout," "));
-    cout << endl;
-  } else {
-    ofstream out("out.txt");
-    out.precision(numeric_limits<double>::max_digits10);
-    copy(x,x+MULT*N,ostream_iterator<double>(out,"\n"));
-  }
+  logsol(x,"out.txt");
+
   return 0;
 }
