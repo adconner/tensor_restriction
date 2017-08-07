@@ -335,12 +335,12 @@ int main(int argc, char** argv) {
     for (auto rid : rids) {
       problem.RemoveResidualBlock(rid);
     }
-  }
-  options.function_tolerance = ftol;
-  double cost; problem.Evaluate(eopts,&cost,0,0,0);
-  if (cost > abort_worse) {
-    if (verbose) cout << "cost " << cost << " not good enough to refine. Aborting" << endl;
-    return 2;
+    options.function_tolerance = ftol;
+    double cost; problem.Evaluate(eopts,&cost,0,0,0);
+    if (cost > abort_worse) {
+      if (verbose) cout << "cost " << cost << " not good enough to refine. Aborting" << endl;
+      return 2;
+    }
   }
 
   options.minimizer_type = TRUST_REGION;
