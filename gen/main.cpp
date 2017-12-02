@@ -290,8 +290,8 @@ int main(int argc, char** argv) {
   if (argc == 1) {
     random_device rd;
     mt19937 gen(rd());
-    uniform_real_distribution<> uni(0,1);
-    generate_n(x,MULT*N,[&] {return uni(gen);});
+    normal_distribution<> dist(0,1);
+    generate_n(x,MULT*N,[&] {return dist(gen);});
   } else {
     ifstream in(argv[1]);
     for (int i=0; i<MULT*N; ++i)
