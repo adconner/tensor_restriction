@@ -61,11 +61,11 @@ void solver_opts(Solver::Options &options) {
   /* options.nonlinear_conjugate_gradient_type = HESTENES_STIEFEL; */
 
   // linear solver options
-  /* options.linear_solver_type = SPARSE_NORMAL_CHOLESKY; */
+  options.linear_solver_type = SPARSE_NORMAL_CHOLESKY;
   /* options.dynamic_sparsity = true; // since solutions are typically sparse? */
   /* options.use_postordering = true; */
 
-  options.linear_solver_type = DENSE_QR;
+  /* options.linear_solver_type = DENSE_QR; */
   /* options.linear_solver_type = CGNR; */
   /* options.linear_solver_type = ITERATIVE_SCHUR; */
 
