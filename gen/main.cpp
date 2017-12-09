@@ -298,6 +298,7 @@ void greedy_discrete_pairs(Problem &p, double *x,
 
 int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);
+  cout.precision(numeric_limits<double>::digits10);
 
   double x[MULT*N];
   if (argc == 1) {
@@ -373,7 +374,7 @@ int main(int argc, char** argv) {
     options.callbacks.push_back(record.get());
     Solve(options, &problem, &summary);
     options.callbacks.pop_back();
-    options.update_state_every_iteration = false;
+    if (!verbose) options.update_state_every_iteration = false;
   } else {
     Solve(options, &problem, &summary);
   }
@@ -395,12 +396,6 @@ int main(int argc, char** argv) {
   /* options.max_num_iterations = iterations_tiny; */
   checkpoint_iter = iterations_checkpoint;
   checkpoint_ok = checkpoint;
-
-  if (verbose) {
-    delete options.callbacks.back();
-    options.callbacks.pop_back();
-    options.update_state_every_iteration = false;
-  }
 
   greedy_discrete(problem,x,options,eopts,10);
   greedy_discrete_pairs(problem,x,options,eopts,10);
