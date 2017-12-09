@@ -1,5 +1,5 @@
 # CFLAGS=-g -fsanitize=address
-# CFLAGS=-O3 -ffast-math -march=native -g
+CFLAGS=-O3 -ffast-math -march=native
 # CFLAGS=-g
 CXXFLAGS=-std=c++14 -I/usr/include/eigen3 $(CFLAGS)
 LDFLAGS=-lceres -lcxsparse -lcholmod -lumfpack -lamd -lcamd -lcolamd -lccolamd -lbtf -lsuitesparseconfig -lmetis -llapack -lopenblas -lglog -lomp -pthread
@@ -9,13 +9,15 @@ CXX=clang++
 
 # .SUFFIXES:
 
-ofiles=prob.o
+ofiles=prob.o $(sort $(patsubst %.c,%.o,$(wildcard prob*.c)))
 targets=main check
 
 all: $(targets)
 
-%: %.o $(ofiles)
-	$(CXX) $^ -o $@ $(LDFLAGS) 
+main: main.o $(ofiles)
+	$(CXX) $^ -o $@ $(LDFLAGS)
+check: check.o $(ofiles)
+	$(CXX) $^ -o $@ $(LDFLAGS)
 
 main.o: main.cpp prob.h
 check.o: check.cpp prob.h
