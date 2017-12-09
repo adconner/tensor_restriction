@@ -13,15 +13,16 @@ using namespace std;
 const bool verbose = true;
 const bool tostdout = false;
 const bool attemptsparse = true; 
-const bool force_always = false;
-const bool force_random_start = true;
+const bool l2_reg_always = false;
+const bool l2_reg_random_start = true;
 const bool record_iterations = false;
 
 const double ftol = 1e-13;
 const double gtol = 1e-13;
 const double ptol = 1e-13;
 
-const int num_relax = 30;
+const int l2_reg_steps = 30;
+const double l2_reg_decay = 0.95;
 const double alphastart = 0.02;
 const double ftol_rough = 1e-4;
 const double abort_worse = 1e-3;
@@ -98,7 +99,7 @@ class RecordCallback : public IterationCallback {
     ostream &out;
 };
 
-class NoBorderRank : public SizedCostFunction<MULT,MULT> {
+class L2Regularization : public SizedCostFunction<MULT,MULT> {
   public:
     bool Evaluate(const double* const* x,
                         double* residuals,
@@ -309,36 +310,39 @@ int main(int argc, char** argv) {
   auto solvedstop = make_unique<SolvedCallback>();
   options.callbacks.push_back(solvedstop.get());
 
-  if (force_always || (force_random_start && argc == 1)) {
+  if (l2_reg_always || (l2_reg_random_start && argc == 1)) {
     vector<ResidualBlockId> rids;
     for (int i=0; i<N; ++i) {
-      rids.push_back(problem.AddResidualBlock(new NoBorderRank, NULL, &x[MULT*i]));
+      rids.push_back(problem.AddResidualBlock(new L2Regularization, NULL, &x[MULT*i]));
     }
     options.minimizer_type = TRUST_REGION;
     options.max_num_iterations = iterations_rough;
     options.function_tolerance = ftol_rough;
+    if (verbose) options.minimizer_progress_to_stdout = true;
     checkpoint_iter = -1;
     /* options.minimizer_progress_to_stdout=true; */
     // dogleg for positive alpha?
-    for (int i=num_relax; i>=0; --i) {
-      sqalpha = std::sqrt(alphastart * i/(double) num_relax);
+    sqalpha = std::sqrt(alphastart);
+    for (int i=l2_reg_steps; i>=0; --i, sqalpha *= std::sqrt(l2_reg_decay)) {
       Solver::Summary summary;
       if (verbose) {
-        cout << "forcing coefficient " << (sqalpha * sqalpha) << " cost ";
+        cout << "l2 regularization coefficient " << (sqalpha * sqalpha) << endl;
         cout.flush();
       }
       Solve(options, &problem, &summary);
       /* if (verbose) cout << summary.FullReport() << "\n"; */
-      double cost; problem.Evaluate(eopts,&cost,0,0,0);
-      if (verbose) cout << cost << endl;
     }
     for (auto rid : rids) {
       problem.RemoveResidualBlock(rid);
     }
+    cout << "rough solving..." << endl;
+    Solver::Summary summary;
+    Solve(options, &problem, &summary);
     options.function_tolerance = ftol;
     double cost; problem.Evaluate(eopts,&cost,0,0,0);
     if (cost > abort_worse) {
-      if (verbose) cout << "cost " << cost << " not good enough to refine. Aborting" << endl;
+      if (verbose) cout << summary.FullReport() << endl << 
+        "cost " << cost << " not good enough to refine. Aborting" << endl;
       return 2;
     }
   }
