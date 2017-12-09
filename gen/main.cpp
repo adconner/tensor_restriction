@@ -99,6 +99,18 @@ class RecordCallback : public IterationCallback {
     ostream &out;
 };
 
+class PrintCallback : public IterationCallback {
+  public:
+    PrintCallback(double *_x) : x(_x) {}
+    CallbackReturnType operator()(const IterationSummary& summary) {
+      cout << summary.iteration << " " << summary.cost << " " << 
+        accumulate(x,x+MULT*N,0.0,[](double a, double b) {return max(std::abs(a),std::abs(b));} ) << 
+        " " << summary.relative_decrease << endl;
+      return SOLVER_CONTINUE;
+    }
+    double *x;
+};
+
 class L2Regularization : public SizedCostFunction<MULT,MULT> {
   public:
     bool Evaluate(const double* const* x,
@@ -306,9 +318,13 @@ int main(int argc, char** argv) {
   problem.GetResidualBlocks(&eopts.residual_blocks);
   // save residuals we care about before adding other regularization
 
-  Solver::Options options; solver_opts(options);
-  auto solvedstop = make_unique<SolvedCallback>();
-  options.callbacks.push_back(solvedstop.get());
+  Solver::Options options;
+  solver_opts(options);
+  options.callbacks.push_back(new SolvedCallback);
+  if (verbose) {
+    options.update_state_every_iteration = true;
+    options.callbacks.push_back(new PrintCallback(x));
+  }
 
   if (l2_reg_always || (l2_reg_random_start && argc == 1)) {
     vector<ResidualBlockId> rids;
@@ -318,10 +334,7 @@ int main(int argc, char** argv) {
     options.minimizer_type = TRUST_REGION;
     options.max_num_iterations = iterations_rough;
     options.function_tolerance = ftol_rough;
-    if (verbose) options.minimizer_progress_to_stdout = true;
     checkpoint_iter = -1;
-    /* options.minimizer_progress_to_stdout=true; */
-    // dogleg for positive alpha?
     sqalpha = std::sqrt(alphastart);
     for (int i=l2_reg_steps; i>=0; --i, sqalpha *= std::sqrt(l2_reg_decay)) {
       Solver::Summary summary;
@@ -353,7 +366,6 @@ int main(int argc, char** argv) {
   options.max_num_iterations = iterations_fine;
   solved = solved_fine;
   checkpoint_iter = -1;
-  if (verbose) options.minimizer_progress_to_stdout = true;
   Solver::Summary summary;
   if (record_iterations) {
     options.update_state_every_iteration = true;
@@ -378,12 +390,17 @@ int main(int argc, char** argv) {
   }
   if (!attemptsparse) return 0;
   if (verbose) cout << "solution seems good, sparsifying..." << endl;
-  options.minimizer_progress_to_stdout = false;
   options.minimizer_type = TRUST_REGION;
   options.max_num_iterations = iterations_rough;
   /* options.max_num_iterations = iterations_tiny; */
   checkpoint_iter = iterations_checkpoint;
   checkpoint_ok = checkpoint;
+
+  if (verbose) {
+    delete options.callbacks.back();
+    options.callbacks.pop_back();
+    options.update_state_every_iteration = false;
+  }
 
   greedy_discrete(problem,x,options,eopts,10);
   greedy_discrete_pairs(problem,x,options,eopts,10);
