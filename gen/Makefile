@@ -9,7 +9,7 @@ CXX=clang++
 
 # .SUFFIXES:
 
-ofiles=prob.o $(sort $(patsubst %.c,%.o,$(wildcard prob*.c)))
+ofiles=prob.o $(sort $(patsubst %.c,%.o,$(wildcard ccode/prob*.c)))
 targets=main check
 
 all: $(targets)
