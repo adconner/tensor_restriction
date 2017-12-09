@@ -344,6 +344,8 @@ int main(int argc, char** argv) {
       if (verbose) cout << summary.FullReport() << endl << 
         "cost " << cost << " not good enough to refine. Aborting" << endl;
       return 2;
+    } else if (verbose) {
+      cout << "fine tuning solution..." << endl;
     }
   }
 
