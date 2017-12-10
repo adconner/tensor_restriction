@@ -304,7 +304,7 @@ int main(int argc, char** argv) {
   if (argc == 1) {
     random_device rd;
     mt19937 gen(rd());
-    normal_distribution<> dist(0,1);
+    normal_distribution<> dist(0,0.4);
     generate_n(x,MULT*N,[&] {return dist(gen);});
   } else {
     ifstream in(argv[1]);
@@ -349,7 +349,7 @@ int main(int argc, char** argv) {
     for (auto rid : rids) {
       problem.RemoveResidualBlock(rid);
     }
-    cout << "rough solving..." << endl;
+    if (verbose) cout << "rough solving..." << endl;
     Solver::Summary summary;
     Solve(options, &problem, &summary);
     options.function_tolerance = ftol;
