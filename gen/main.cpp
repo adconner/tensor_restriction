@@ -19,6 +19,7 @@ const bool attemptsparse = true;
 const bool l2_reg_always = false;
 const bool l2_reg_random_start = true;
 const bool record_iterations = false;
+const bool log_rough = !tostdout;
 
 const double ftol = 1e-13;
 const double gtol = 1e-13;
@@ -387,6 +388,7 @@ int main(int argc, char** argv) {
     /*   return 0; */
     /* } */
 
+    if (log_rough) logsol(x,"out_rough.txt");
     double cost; problem.Evaluate(eopts,&cost,0,0,0);
     if (cost > abort_worse) {
       if (verbose) cout << summary.FullReport() << endl << 
