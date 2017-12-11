@@ -41,7 +41,7 @@ const int iterations_fine = 2500;
 // parameters for descretization
 const double checkpoint = 0.5;
 const int iterations_checkpoint = 5;
-const int iterations_discrete = 200;
+const int iterations_discrete = 80;
 
 // control variables
 double sqalpha; // square root of forcing coeffient
