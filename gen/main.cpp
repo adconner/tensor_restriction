@@ -3,12 +3,15 @@
 #include <iterator>
 #include <memory>
 #include <limits>
+#include <complex>
+#include <tuple>
 #include "ceres/ceres.h"
 #include "glog/logging.h"
 #include "prob.h"
 
 using namespace ceres;
 using namespace std;
+typedef complex<double> cx;
 
 const bool verbose = true;
 const bool tostdout = false;
@@ -23,12 +26,12 @@ const double ptol = 1e-13;
 
 const int l2_reg_steps = 3;
 const double l2_reg_decay = 0.60;
-const double alphastart = 0.02;
+const double alphastart = 0.01;
 const double ftol_rough = 1e-4;
 const double abort_worse = 1e-3;
 
 const double solved_fine = 1e-25;
-const double attempt_sparse_thresh = 1e-5;
+const double attempt_sparse_thresh = 1e-12;
 
 // parameters for finding an initial solution
 const int iterations_rough = 200;
@@ -37,13 +40,14 @@ const int iterations_fine = 2500;
 // parameters for descretization
 const double checkpoint = 0.5;
 const int iterations_checkpoint = 5;
-const int iterations_tiny = 60;
+const int iterations_discrete = 200;
 
 // control variables
 double sqalpha; // square root of forcing coeffient
 double solved; // value to stop optimization at if reached
 double checkpoint_ok; // stop iteration if have not converged to at least here
 double checkpoint_iter; // checkpoint iteration number
+bool print_lines;
 
 void solver_opts(Solver::Options &options) {
   options.num_threads = 1;
@@ -103,9 +107,13 @@ class PrintCallback : public IterationCallback {
   public:
     PrintCallback(double *_x) : x(_x) {}
     CallbackReturnType operator()(const IterationSummary& summary) {
-      cout << summary.iteration << " " << summary.cost << " " << 
-        accumulate(x,x+MULT*N,0.0,[](double a, double b) {return max(std::abs(a),std::abs(b));} ) << 
-        " " << summary.relative_decrease << endl;
+      if (print_lines) {
+        double ma = accumulate(x,x+MULT*N,0.0,[](double a, double b) {return max(std::abs(a),std::abs(b));} ); 
+        cout << summary.iteration << " " << summary.cost << " " << ma <<
+          " " << summary.relative_decrease << endl;
+        /* if (ma > 4 && summary.iteration >= 10) */
+        /*   return SOLVER_ABORT; */
+      }
       return SOLVER_CONTINUE;
     }
     double *x;
@@ -132,14 +140,14 @@ class L2Regularization : public SizedCostFunction<MULT,MULT> {
     }
 };
 
-class Zero : public SizedCostFunction<MULT,MULT> {
+class Equal : public SizedCostFunction<MULT,MULT> {
   public:
-    Zero(double _a) : a(_a) {}
+    Equal(double _a, cx _x0) : a(_a), x0(_x0) {}
     bool Evaluate(const double* const* x,
                         double* residuals,
                         double** jacobians) const {
-      residuals[0] = a*x[0][0];
-      if (MULT == 2) residuals[1] = a*x[0][1];
+      residuals[0] = a*(x[0][0]-x0.real());
+      if (MULT == 2) residuals[1] = a*(x[0][1]-x0.imag());
       if (jacobians && jacobians[0]) {
         jacobians[0][0] = a;
         if (MULT == 2) {
@@ -151,6 +159,7 @@ class Zero : public SizedCostFunction<MULT,MULT> {
       return true;
     }
     double a;
+    cx x0;
 };
 
 void logsol(double *x, string fname) {
@@ -165,44 +174,59 @@ void logsol(double *x, string fname) {
   }
 }
 
+enum DiscreteAttempt {
+  DA_ZERO,
+  DA_PM_ONE,
+  DA_INTEGER };
 void greedy_discrete(Problem &p, double *x, 
     const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
-    const int faillimit = -1) {
+    DiscreteAttempt da = DA_ZERO, const int faillimit = -1) {
   while (true) {
-    vector<pair<double,int> > vals(N);
+    vector<tuple<double,cx,int> > vals(N);
     for (int i=0; i<N; ++i) {
-      for (int j=0; j<MULT; ++j) {
-        vals[i].first += x[i*MULT + j] * x[i*MULT+j];
+      cx target;
+      switch (da) {
+        case DA_ZERO: target = 0.0; break;
+        case DA_PM_ONE: target = x[i*MULT] >= 0 ? 1.0 : -1.0; break;
+        case DA_INTEGER: target = std::round(x[i*MULT]); break;
       }
-      vals[i].second = i*MULT;
+      cx cur = MULT == 1 ? cx(x[i]) : cx(x[i*MULT],x[i*MULT+1]);
+      get<0>(vals[i]) = std::abs(cur - target);
+      get<1>(vals[i]) = target;
+      get<2>(vals[i]) = i;
     }
-    sort(vals.begin(),vals.end());
+    sort(vals.begin(),vals.end(),[](const auto &a,const auto &b) {
+        return get<0>(a) < get<0>(b);
+    });
     int fails = faillimit;
     for (int i=0; i<N; ++i) {
-      if (!p.IsParameterBlockConstant(x+vals[i].second)) {
+      if (!p.IsParameterBlockConstant(x+get<2>(vals[i]))) {
         vector<double> sav(x,x+N*MULT);
         double icost; p.Evaluate(eopts,&icost,0,0,0);
         if (verbose) {
-          cout << "cost " << icost << " attempting to zero "; 
-          cout << "x[" << vals[i].second << "]";
-          if (MULT == 2) cout << ", x[" << vals[i].second + 1 << "]";
+          cout << "cost " << icost << " attempting to set "
+            << "x[" << get<2>(vals[i]) << "] = " << get<1>(vals[i]).real();
+          if (MULT == 2) cout << ", x[" << get<2>(vals[i]) + 1 << "] = "
+            << get<1>(vals[i]).imag();
           cout << "...";
           cout.flush();
         }
-        auto rid = p.AddResidualBlock(new Zero(1), NULL, x+vals[i].second);
+        auto rid = p.AddResidualBlock(new Equal(1.0,get<1>(vals[i])), 
+            NULL, x+get<2>(vals[i]));
         Solver::Summary summary;
         Solve(opts,&p,&summary);
         p.RemoveResidualBlock(rid);
-        if (summary.final_cost <= std::max(icost,solved)) {
-          for (int j=0; j<MULT; ++j) x[vals[i].second+j] = 0;
-          p.SetParameterBlockConstant(x+vals[i].second);
+        if (summary.final_cost <= std::max(icost,solved)) { // improved or good enough
+          x[get<2>(vals[i])*MULT] = get<1>(vals[i]).real();
+          if (MULT == 2) x[get<2>(vals[i])*MULT + 1] = get<1>(vals[i]).imag();
+          p.SetParameterBlockConstant(x+get<2>(vals[i]));
           Solve(opts,&p,&summary);
           cout << " success" << endl;
-          logsol(x,"out_partial.txt");
+          logsol(x,"out_partial_sparse.txt");
           goto found;
         }
         if (verbose) cout << " fail" << endl;
-        p.SetParameterBlockVariable(x+vals[i].second);
+        p.SetParameterBlockVariable(x+get<2>(vals[i]));
         copy(sav.begin(),sav.end(),x);
         if (faillimit > 0 && fails-- == 0) break;
       }
@@ -275,14 +299,14 @@ void greedy_discrete_pairs(Problem &p, double *x,
             << vals[i].second.second << "]...";
           cout.flush();
         }
-        auto rid = p.AddResidualBlock(new LinearCombination(1,-1), NULL, 
+        auto rid = p.AddResidualBlock(new LinearCombination(1.0,-1.0), NULL, 
             {x+vals[i].second.first, x+vals[i].second.second});
         Solver::Summary summary;
         Solve(opts,&p,&summary);
         if (summary.final_cost <= std::max(icost,solved)) {
           fixed.insert(vals[i].second);
           cout << " success" << endl;
-          logsol(x,"out_partial.txt");
+          logsol(x,"out_partial_sparse.txt");
           goto found;
         }
         if (verbose) cout << " fail" << endl;
@@ -326,6 +350,7 @@ int main(int argc, char** argv) {
     options.update_state_every_iteration = true;
     options.callbacks.push_back(new PrintCallback(x));
   }
+  print_lines = verbose;
 
   if (l2_reg_always || (l2_reg_random_start && argc == 1)) {
     vector<ResidualBlockId> rids;
@@ -353,6 +378,15 @@ int main(int argc, char** argv) {
     Solver::Summary summary;
     Solve(options, &problem, &summary);
     options.function_tolerance = ftol;
+
+    /* vector<double> rs; problem.Evaluate(eopts,0,&rs,0,0); */
+    /* int bad = count_if(rs.begin(),rs.end(), */
+    /*       [](double r){return std::abs(r) > abort_worse;}); */
+    /* if (0 < bad && bad <= 2) { */
+    /*   logsol(x,"out_almost.txt"); */
+    /*   return 0; */
+    /* } */
+
     double cost; problem.Evaluate(eopts,&cost,0,0,0);
     if (cost > abort_worse) {
       if (verbose) cout << summary.FullReport() << endl << 
@@ -374,7 +408,6 @@ int main(int argc, char** argv) {
     options.callbacks.push_back(record.get());
     Solve(options, &problem, &summary);
     options.callbacks.pop_back();
-    if (!verbose) options.update_state_every_iteration = false;
   } else {
     Solve(options, &problem, &summary);
   }
@@ -382,25 +415,26 @@ int main(int argc, char** argv) {
 
   logsol(x,"out_dense.txt");
 
-  if (summary.final_cost > attempt_sparse_thresh) {
-    if (verbose) {
-      cout << "accuracy fail, not sparsifying" << endl;
-      cout << summary.FullReport() << "\n";
+  if (attemptsparse) {
+    if (summary.final_cost > attempt_sparse_thresh) {
+      if (verbose) {
+        cout << "accuracy fail, not sparsifying" << endl;
+        cout << summary.FullReport() << "\n";
+      }
+      return 1;
     }
-    return 1;
+    if (verbose) cout << "solution seems good, sparsifying..." << endl;
+    options.minimizer_type = TRUST_REGION;
+    options.max_num_iterations = iterations_discrete;
+    checkpoint_iter = iterations_checkpoint;
+    checkpoint_ok = checkpoint;
+    print_lines = false;
+
+    greedy_discrete(problem,x,options,eopts,DA_ZERO,10);
+    greedy_discrete(problem,x,options,eopts,DA_PM_ONE,10);
+    greedy_discrete_pairs(problem,x,options,eopts,10);
+
+    logsol(x,"out.txt");
   }
-  if (!attemptsparse) return 0;
-  if (verbose) cout << "solution seems good, sparsifying..." << endl;
-  options.minimizer_type = TRUST_REGION;
-  options.max_num_iterations = iterations_rough;
-  /* options.max_num_iterations = iterations_tiny; */
-  checkpoint_iter = iterations_checkpoint;
-  checkpoint_ok = checkpoint;
-
-  greedy_discrete(problem,x,options,eopts,10);
-  greedy_discrete_pairs(problem,x,options,eopts,10);
-
-  logsol(x,"out.txt");
-
   return 0;
 }
