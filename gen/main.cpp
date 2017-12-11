@@ -39,9 +39,9 @@ const int iterations_rough = 200;
 const int iterations_fine = 2500;
 
 // parameters for descretization
-const double checkpoint = 0.5;
-const int iterations_checkpoint = 5;
-const int iterations_discrete = 80;
+const double checkpoint = 1e-12;
+const int iterations_checkpoint = 10;
+const int iterations_discrete = 100;
 
 // control variables
 double sqalpha; // square root of forcing coeffient
@@ -67,10 +67,11 @@ void solver_opts(Solver::Options &options) {
   /* options.nonlinear_conjugate_gradient_type = HESTENES_STIEFEL; */
 
   // linear solver options
-  options.linear_solver_type = SPARSE_NORMAL_CHOLESKY;
+  /* options.linear_solver_type = SPARSE_NORMAL_CHOLESKY; */
   /* options.dynamic_sparsity = true; // since solutions are typically sparse? */
   /* options.use_postordering = true; */
 
+  options.linear_solver_type = DENSE_NORMAL_CHOLESKY;
   /* options.linear_solver_type = DENSE_QR; */
   /* options.linear_solver_type = CGNR; */
   /* options.linear_solver_type = ITERATIVE_SCHUR; */
@@ -182,6 +183,9 @@ enum DiscreteAttempt {
 void greedy_discrete(Problem &p, double *x, 
     const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
     DiscreteAttempt da = DA_ZERO, const int faillimit = -1) {
+  vector<int> counts(N);
+  /* const double fail_penalty = 0.05; */
+  const double fail_penalty = 0.2;
   while (true) {
     vector<tuple<double,cx,int> > vals(N);
     for (int i=0; i<N; ++i) {
@@ -192,7 +196,7 @@ void greedy_discrete(Problem &p, double *x,
         case DA_INTEGER: target = std::round(x[i*MULT]); break;
       }
       cx cur = MULT == 1 ? cx(x[i]) : cx(x[i*MULT],x[i*MULT+1]);
-      get<0>(vals[i]) = std::abs(cur - target);
+      get<0>(vals[i]) = std::abs(cur - target) + fail_penalty * counts[i];
       get<1>(vals[i]) = target;
       get<2>(vals[i]) = i;
     }
@@ -205,7 +209,7 @@ void greedy_discrete(Problem &p, double *x,
       if (!p.IsParameterBlockConstant(x+get<2>(vals[i]))) {
         double icost; p.Evaluate(eopts,&icost,0,0,0);
         if (verbose) {
-          cout << "cost " << icost << " attempting to set "
+          cout << "cost " << icost << " fails " << counts[get<2>(vals[i])] << " setting "
             << "x[" << get<2>(vals[i]) << "] = " << get<1>(vals[i]).real();
           if (MULT == 2) cout << ", x[" << get<2>(vals[i]) + 1 << "] = "
             << get<1>(vals[i]).imag();
@@ -225,6 +229,7 @@ void greedy_discrete(Problem &p, double *x,
         }
         if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
             << summary.final_cost << endl;
+        counts[get<2>(vals[i])]++;
         p.SetParameterBlockVariable(x+get<2>(vals[i]));
         copy(sav.begin(),sav.end(),x);
         if (faillimit > 0 && fails-- == 0) break;
@@ -432,7 +437,7 @@ int main(int argc, char** argv) {
     checkpoint_ok = checkpoint;
     print_lines = false;
 
-    greedy_discrete(problem,x,options,eopts,DA_ZERO,10);
+    greedy_discrete(problem,x,options,eopts,DA_ZERO,-1);
     greedy_discrete(problem,x,options,eopts,DA_PM_ONE,10);
     greedy_discrete_pairs(problem,x,options,eopts,10);
 
