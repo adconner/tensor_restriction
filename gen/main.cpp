@@ -22,8 +22,8 @@ const bool record_iterations = false;
 const bool log_rough = !tostdout;
 
 const double ftol = 1e-10;
-const double gtol = 1e-18;
-const double ptol = 1e-18;
+const double gtol = 1e-30;
+const double ptol = 1e-30;
 
 const int l2_reg_steps = 3;
 const double l2_reg_decay = 0.60;
@@ -40,7 +40,7 @@ const int iterations_fine = 2500;
 
 // parameters for descretization
 const double checkpoint = 1e-5;
-const int iterations_checkpoint = 6;
+const int iterations_checkpoint = 15;
 const int iterations_discrete = 100;
 
 // control variables
@@ -441,8 +441,8 @@ int main(int argc, char** argv) {
     checkpoint_ok = checkpoint;
     print_lines = false;
 
-    greedy_discrete(problem,x,options,eopts,DA_ZERO,-1);
-    greedy_discrete(problem,x,options,eopts,DA_PM_ONE,10);
+    greedy_discrete(problem,x,options,eopts,DA_ZERO,N/2);
+    greedy_discrete(problem,x,options,eopts,DA_PM_ONE,N/4);
     greedy_discrete_pairs(problem,x,options,eopts,10);
 
     logsol(x,"out.txt");
