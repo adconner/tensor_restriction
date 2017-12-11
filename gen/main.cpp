@@ -200,9 +200,9 @@ void greedy_discrete(Problem &p, double *x,
         return get<0>(a) < get<0>(b);
     });
     int fails = faillimit;
+    vector<double> sav(x,x+N*MULT);
     for (int i=0; i<N; ++i) {
       if (!p.IsParameterBlockConstant(x+get<2>(vals[i]))) {
-        vector<double> sav(x,x+N*MULT);
         double icost; p.Evaluate(eopts,&icost,0,0,0);
         if (verbose) {
           cout << "cost " << icost << " attempting to set "
@@ -284,11 +284,11 @@ void greedy_discrete_pairs(Problem &p, double *x,
     }
     sort(vals.begin(),vals.end());
     int fails = faillimit;
+    vector<double> sav(x,x+N*MULT);
     for (int i=0; i<vals.size(); ++i) {
       if (!p.IsParameterBlockConstant(x+vals[i].second.first) &&
           !p.IsParameterBlockConstant(x+vals[i].second.second) && 
           !fixed.count(vals[i].second)) {
-        vector<double> sav(x,x+N*MULT);
         double icost; p.Evaluate(eopts,&icost,0,0,0);
         if (verbose) {
           cout << "cost " << icost << " attempting to set "; 
