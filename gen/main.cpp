@@ -21,7 +21,7 @@ const bool l2_reg_random_start = true;
 const bool record_iterations = false;
 const bool log_rough = !tostdout;
 
-const double ftol = 1e-10;
+const double ftol = 1e-13;
 const double gtol = 1e-30;
 const double ptol = 1e-30;
 
@@ -39,15 +39,11 @@ const int iterations_rough = 200;
 const int iterations_fine = 2500;
 
 // parameters for descretization
-const double checkpoint = 1e-5;
-const int iterations_checkpoint = 15;
-const int iterations_discrete = 100;
+const int iterations_discrete = 60;
+const double ftol_discrete = 0.4; // ~ solved_fine ^ (1/iterations_discrete)
 
 // control variables
-double sqalpha; // square root of forcing coeffient
-double solved; // value to stop optimization at if reached
-double checkpoint_ok; // stop iteration if have not converged to at least here
-double checkpoint_iter; // checkpoint iteration number
+double sqalpha; // square root of l2 regularization coefficient
 bool print_lines;
 
 void solver_opts(Solver::Options &options) {
@@ -87,10 +83,7 @@ void solver_opts(Solver::Options &options) {
 class SolvedCallback : public IterationCallback {
   public:
     CallbackReturnType operator()(const IterationSummary& summary) {
-      if (checkpoint_iter >= 0 
-          && summary.iteration >= checkpoint_iter 
-          && summary.cost > checkpoint_ok) return SOLVER_ABORT;
-      return summary.cost < solved ? SOLVER_TERMINATE_SUCCESSFULLY : SOLVER_CONTINUE;
+      return summary.cost < 1e-29 ? SOLVER_TERMINATE_SUCCESSFULLY : SOLVER_CONTINUE;
     }
 };
 
@@ -221,22 +214,28 @@ void greedy_discrete(Problem &p, double *x,
         x[get<2>(vals[i])*MULT] = get<1>(vals[i]).real();
         if (MULT == 2) x[get<2>(vals[i])*MULT + 1] = get<1>(vals[i]).imag();
         p.SetParameterBlockConstant(x+get<2>(vals[i]));
-        checkpoint_iter = iterations_checkpoint * (1 << counts[get<2>(vals[i])]);
-        Solver::Summary summary;
-        Solve(opts,&p,&summary);
-        if (summary.final_cost <= std::max(icost,solved)) { // improved or good enough
-          if (verbose) cout << " success " << summary.iterations.size() - 1
-              << " iterations" << endl;
-          logsol(x,"out_partial_sparse.txt");
+        double scost; p.Evaluate(eopts,&scost,0,0,0);
+        if (scost < std::max(icost,solved_fine)) {
+          if (verbose) cout << " success free " << endl;
           successes++;
           goto found;
+        } else {
+          Solver::Summary summary;
+          Solve(opts,&p,&summary);
+          if (summary.final_cost <= std::max(icost,solved_fine)) { // improved or good enough
+            if (verbose) cout << " success " << summary.iterations.size() - 1
+                << " iterations" << endl;
+            logsol(x,"out_partial_sparse.txt");
+            successes++;
+            goto found;
+          }
+          if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
+              << summary.final_cost << endl;
+          counts[get<2>(vals[i])]++;
+          p.SetParameterBlockVariable(x+get<2>(vals[i]));
+          copy(sav.begin(),sav.end(),x);
+          if (faillimit > 0 && fails-- == 0) break;
         }
-        if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
-            << summary.final_cost << endl;
-        counts[get<2>(vals[i])]++;
-        p.SetParameterBlockVariable(x+get<2>(vals[i]));
-        copy(sav.begin(),sav.end(),x);
-        if (faillimit > 0 && fails-- == 0) break;
       }
     }
     break;
@@ -278,7 +277,6 @@ class LinearCombination : public SizedCostFunction<MULT,MULT,MULT> {
 void greedy_discrete_pairs(Problem &p, double *x, 
     const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
     const int faillimit = -1) {
-  checkpoint_iter = iterations_checkpoint;
   set<pair<int,int> > fixed;
   while (true) {
     vector<pair<double,pair<int,int> > > vals(N * (N-1) / 2);
@@ -312,7 +310,7 @@ void greedy_discrete_pairs(Problem &p, double *x,
             {x+vals[i].second.first, x+vals[i].second.second});
         Solver::Summary summary;
         Solve(opts,&p,&summary);
-        if (summary.final_cost <= std::max(icost,solved)) {
+        if (summary.final_cost <= std::max(icost,solved_fine)) {
           fixed.insert(vals[i].second);
           if (verbose) cout << " success " << summary.iterations.size() - 1
               << " iterations" << endl;
@@ -371,7 +369,6 @@ int main(int argc, char** argv) {
     options.minimizer_type = TRUST_REGION;
     options.max_num_iterations = iterations_rough;
     options.function_tolerance = ftol_rough;
-    checkpoint_iter = -1;
     sqalpha = std::sqrt(alphastart);
     for (int i=l2_reg_steps; i>0; --i, sqalpha *= std::sqrt(l2_reg_decay)) {
       Solver::Summary summary;
@@ -411,8 +408,6 @@ int main(int argc, char** argv) {
 
   options.minimizer_type = TRUST_REGION;
   options.max_num_iterations = iterations_fine;
-  solved = solved_fine;
-  checkpoint_iter = -1;
   Solver::Summary summary;
   if (record_iterations) {
     options.update_state_every_iteration = true;
@@ -438,12 +433,14 @@ int main(int argc, char** argv) {
     if (verbose) cout << "solution seems good, sparsifying..." << endl;
     options.minimizer_type = TRUST_REGION;
     options.max_num_iterations = iterations_discrete;
-    checkpoint_ok = checkpoint;
+    options.function_tolerance = ftol_discrete;
     print_lines = false;
 
-    greedy_discrete(problem,x,options,eopts,DA_ZERO,N/2);
-    greedy_discrete(problem,x,options,eopts,DA_PM_ONE,N/4);
-    greedy_discrete_pairs(problem,x,options,eopts,10);
+    greedy_discrete(problem,x,options,eopts,DA_ZERO,std::max(N/4,10));
+    greedy_discrete(problem,x,options,eopts,DA_PM_ONE,std::max(N/10,10));
+    greedy_discrete(problem,x,options,eopts,DA_ZERO,10);
+    greedy_discrete(problem,x,options,eopts,DA_PM_ONE,10);
+    /* greedy_discrete_pairs(problem,x,options,eopts,10); */
 
     logsol(x,"out.txt");
   }
