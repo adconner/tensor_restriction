@@ -21,9 +21,9 @@ const bool l2_reg_random_start = true;
 const bool record_iterations = false;
 const bool log_rough = !tostdout;
 
-const double ftol = 1e-13;
-const double gtol = 1e-13;
-const double ptol = 1e-13;
+const double ftol = 1e-10;
+const double gtol = 1e-18;
+const double ptol = 1e-18;
 
 const int l2_reg_steps = 3;
 const double l2_reg_decay = 0.60;
