@@ -39,8 +39,8 @@ const int iterations_rough = 200;
 const int iterations_fine = 2500;
 
 // parameters for descretization
-const double checkpoint = 1e-12;
-const int iterations_checkpoint = 10;
+const double checkpoint = 1e-5;
+const int iterations_checkpoint = 6;
 const int iterations_discrete = 100;
 
 // control variables
@@ -183,6 +183,7 @@ enum DiscreteAttempt {
 void greedy_discrete(Problem &p, double *x, 
     const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
     DiscreteAttempt da = DA_ZERO, const int faillimit = -1) {
+  int successes = 0;
   vector<int> counts(N);
   /* const double fail_penalty = 0.05; */
   const double fail_penalty = 0.2;
@@ -209,7 +210,8 @@ void greedy_discrete(Problem &p, double *x,
       if (!p.IsParameterBlockConstant(x+get<2>(vals[i]))) {
         double icost; p.Evaluate(eopts,&icost,0,0,0);
         if (verbose) {
-          cout << "cost " << icost << " fails " << counts[get<2>(vals[i])] << " setting "
+          cout << "successes " << successes << " " << icost << " lfails " 
+            << counts[get<2>(vals[i])] << " setting "
             << "x[" << get<2>(vals[i]) << "] = " << get<1>(vals[i]).real();
           if (MULT == 2) cout << ", x[" << get<2>(vals[i]) + 1 << "] = "
             << get<1>(vals[i]).imag();
@@ -219,12 +221,14 @@ void greedy_discrete(Problem &p, double *x,
         x[get<2>(vals[i])*MULT] = get<1>(vals[i]).real();
         if (MULT == 2) x[get<2>(vals[i])*MULT + 1] = get<1>(vals[i]).imag();
         p.SetParameterBlockConstant(x+get<2>(vals[i]));
+        checkpoint_iter = iterations_checkpoint * (1 << counts[get<2>(vals[i])]);
         Solver::Summary summary;
         Solve(opts,&p,&summary);
         if (summary.final_cost <= std::max(icost,solved)) { // improved or good enough
           if (verbose) cout << " success " << summary.iterations.size() - 1
               << " iterations" << endl;
           logsol(x,"out_partial_sparse.txt");
+          successes++;
           goto found;
         }
         if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
@@ -274,6 +278,7 @@ class LinearCombination : public SizedCostFunction<MULT,MULT,MULT> {
 void greedy_discrete_pairs(Problem &p, double *x, 
     const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
     const int faillimit = -1) {
+  checkpoint_iter = iterations_checkpoint;
   set<pair<int,int> > fixed;
   while (true) {
     vector<pair<double,pair<int,int> > > vals(N * (N-1) / 2);
@@ -433,7 +438,6 @@ int main(int argc, char** argv) {
     if (verbose) cout << "solution seems good, sparsifying..." << endl;
     options.minimizer_type = TRUST_REGION;
     options.max_num_iterations = iterations_discrete;
-    checkpoint_iter = iterations_checkpoint;
     checkpoint_ok = checkpoint;
     print_lines = false;
 
