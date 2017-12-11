@@ -212,16 +212,12 @@ void greedy_discrete(Problem &p, double *x,
           cout << "...";
           cout.flush();
         }
-        auto rid = p.AddResidualBlock(new Equal(1.0,get<1>(vals[i])), 
-            NULL, x+get<2>(vals[i]));
+        x[get<2>(vals[i])*MULT] = get<1>(vals[i]).real();
+        if (MULT == 2) x[get<2>(vals[i])*MULT + 1] = get<1>(vals[i]).imag();
+        p.SetParameterBlockConstant(x+get<2>(vals[i]));
         Solver::Summary summary;
         Solve(opts,&p,&summary);
-        p.RemoveResidualBlock(rid);
         if (summary.final_cost <= std::max(icost,solved)) { // improved or good enough
-          x[get<2>(vals[i])*MULT] = get<1>(vals[i]).real();
-          if (MULT == 2) x[get<2>(vals[i])*MULT + 1] = get<1>(vals[i]).imag();
-          p.SetParameterBlockConstant(x+get<2>(vals[i]));
-          Solve(opts,&p,&summary);
           cout << " success" << endl;
           logsol(x,"out_partial_sparse.txt");
           goto found;
