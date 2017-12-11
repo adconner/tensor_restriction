@@ -218,11 +218,13 @@ void greedy_discrete(Problem &p, double *x,
         Solver::Summary summary;
         Solve(opts,&p,&summary);
         if (summary.final_cost <= std::max(icost,solved)) { // improved or good enough
-          cout << " success" << endl;
+          if (verbose) cout << " success " << summary.iterations.size() - 1
+              << " iterations" << endl;
           logsol(x,"out_partial_sparse.txt");
           goto found;
         }
-        if (verbose) cout << " fail" << endl;
+        if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
+            << summary.final_cost << endl;
         p.SetParameterBlockVariable(x+get<2>(vals[i]));
         copy(sav.begin(),sav.end(),x);
         if (faillimit > 0 && fails-- == 0) break;
@@ -302,11 +304,13 @@ void greedy_discrete_pairs(Problem &p, double *x,
         Solve(opts,&p,&summary);
         if (summary.final_cost <= std::max(icost,solved)) {
           fixed.insert(vals[i].second);
-          cout << " success" << endl;
+          if (verbose) cout << " success " << summary.iterations.size() - 1
+              << " iterations" << endl;
           logsol(x,"out_partial_sparse.txt");
           goto found;
         }
-        if (verbose) cout << " fail" << endl;
+        if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
+          << summary.final_cost << endl;
         p.RemoveResidualBlock(rid);
         copy(sav.begin(),sav.end(),x);
         if (faillimit > 0 && fails-- == 0) break;
