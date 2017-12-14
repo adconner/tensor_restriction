@@ -175,8 +175,7 @@ enum DiscreteAttempt {
   DA_INTEGER };
 void greedy_discrete(Problem &p, double *x, 
     const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
-    DiscreteAttempt da = DA_ZERO, const int faillimit = -1) {
-  int successes = 0;
+    int &successes, DiscreteAttempt da = DA_ZERO, const int faillimit = -1) {
   vector<int> counts(N);
   /* const double fail_penalty = 0.05; */
   const double fail_penalty = 0.2;
@@ -436,10 +435,13 @@ int main(int argc, char** argv) {
     options.function_tolerance = ftol_discrete;
     print_lines = false;
 
-    greedy_discrete(problem,x,options,eopts,DA_ZERO,std::max(N/4,10));
-    greedy_discrete(problem,x,options,eopts,DA_PM_ONE,std::max(N/10,10));
-    greedy_discrete(problem,x,options,eopts,DA_ZERO,10);
-    greedy_discrete(problem,x,options,eopts,DA_PM_ONE,10);
+    int successes = 0;
+    greedy_discrete(problem,x,options,eopts,successes,DA_ZERO,std::max(N/4,10));
+    greedy_discrete(problem,x,options,eopts,successes,DA_PM_ONE,std::max(N/10,10));
+    options.max_num_iterations *= 2;
+    options.function_tolerance *= options.function_tolerance;
+    greedy_discrete(problem,x,options,eopts,successes,DA_ZERO,std::max(N/10,10));
+    greedy_discrete(problem,x,options,eopts,successes,DA_PM_ONE,std::max(N/10,10));
     /* greedy_discrete_pairs(problem,x,options,eopts,10); */
 
     logsol(x,"out.txt");
