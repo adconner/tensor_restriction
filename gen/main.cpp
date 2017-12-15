@@ -172,6 +172,7 @@ void logsol(double *x, string fname) {
 enum DiscreteAttempt {
   DA_ZERO,
   DA_PM_ONE,
+  DA_PM_ONE_ZERO,
   DA_INTEGER };
 void greedy_discrete(Problem &p, double *x, 
     const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
@@ -186,6 +187,7 @@ void greedy_discrete(Problem &p, double *x,
       switch (da) {
         case DA_ZERO: target = 0.0; break;
         case DA_PM_ONE: target = x[i*MULT] >= 0 ? 1.0 : -1.0; break;
+        case DA_PM_ONE_ZERO: target = std::abs(x[i*MULT]) < 1e-2 ? 0.0 : (x[i*MULT] >= 0 ? 1.0 : -1.0); break;
         case DA_INTEGER: target = std::round(x[i*MULT]); break;
       }
       cx cur = MULT == 1 ? cx(x[i]) : cx(x[i*MULT],x[i*MULT+1]);
@@ -202,9 +204,11 @@ void greedy_discrete(Problem &p, double *x,
       if (!p.IsParameterBlockConstant(x+get<2>(vals[i]))) {
         double icost; p.Evaluate(eopts,&icost,0,0,0);
         if (verbose) {
-          cout << "successes " << successes << " " << icost << " lfails " 
-            << counts[get<2>(vals[i])] << " setting "
-            << "x[" << get<2>(vals[i]) << "] = " << get<1>(vals[i]).real();
+          cout << "successes " << successes
+            << " rem " << (faillimit == -1 ? N-i : fails)
+            << " lfails " << counts[get<2>(vals[i])]
+            << " setting " << "x[" << get<2>(vals[i]) << "] = "
+            << get<1>(vals[i]).real();
           if (MULT == 2) cout << ", x[" << get<2>(vals[i]) + 1 << "] = "
             << get<1>(vals[i]).imag();
           cout << "...";
@@ -436,12 +440,14 @@ int main(int argc, char** argv) {
     print_lines = false;
 
     int successes = 0;
-    greedy_discrete(problem,x,options,eopts,successes,DA_ZERO,std::max(N/4,10));
-    greedy_discrete(problem,x,options,eopts,successes,DA_PM_ONE,std::max(N/10,10));
-    options.max_num_iterations *= 2;
-    options.function_tolerance *= options.function_tolerance;
-    greedy_discrete(problem,x,options,eopts,successes,DA_ZERO,std::max(N/10,10));
-    greedy_discrete(problem,x,options,eopts,successes,DA_PM_ONE,std::max(N/10,10));
+    greedy_discrete(problem,x,options,eopts,successes,DA_ZERO,N/2+1);
+    greedy_discrete(problem,x,options,eopts,successes,DA_PM_ONE_ZERO,N/10+1);
+    for (int refine=1; refine<=2; ++refine) {
+      options.max_num_iterations *= 2;
+      options.function_tolerance *= options.function_tolerance;
+      greedy_discrete(problem,x,options,eopts,successes,DA_ZERO,N/10+1);
+      greedy_discrete(problem,x,options,eopts,successes,DA_PM_ONE_ZERO,N/10+1);
+    }
     /* greedy_discrete_pairs(problem,x,options,eopts,10); */
 
     logsol(x,"out.txt");
