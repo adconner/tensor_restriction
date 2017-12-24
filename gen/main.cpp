@@ -10,6 +10,7 @@
 #include "opts.h"
 #include "util.h"
 #include "discrete.h"
+#include "initial.h"
 
 using namespace ceres;
 using namespace std;
@@ -54,16 +55,6 @@ int main(int argc, char** argv) {
   cout.precision(numeric_limits<double>::digits10);
 
   double x[MULT*N];
-  if (argc == 1) {
-    random_device rd;
-    mt19937 gen(rd());
-    normal_distribution<> dist(0,0.4);
-    generate_n(x,MULT*N,[&] {return dist(gen);});
-  } else {
-    ifstream in(argv[1]);
-    for (int i=0; i<MULT*N; ++i)
-      in >> x[i];
-  }
 
   Problem problem;
   ceres::ParameterBlockOrdering pbo;
@@ -71,6 +62,8 @@ int main(int argc, char** argv) {
   Problem::EvaluateOptions eopts;
   problem.GetResidualBlocks(&eopts.residual_blocks);
   // save residuals we care about before adding other regularization
+
+  fill_initial(x,argc,argv,problem);
 
   Solver::Options options;
   solver_opts(options);
