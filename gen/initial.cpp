@@ -46,27 +46,10 @@ vi combination(int ix, const vi &mi, const vi &ma, const vi &costs, int cost, co
   return res;
 }
 
-/* int main() { */
-/*   vi mi{0,0,0}; */
-/*   vi ma{100,100,100}; */
-/*   vi cs{2,5,10}; */
-/*   for (int c=1; c<=20; ++c) { */
-/*     vvi dp(ncombinations(mi,ma,cs,c)); */
-/*     cout << c << " " << dp.back().back() << endl; */
-/*     for (int i=0; i<dp.back().back(); ++i) { */
-/*       vi out(combination(i,mi,ma,cs,c,dp)); */
-/*       for (int i=0; i<out.size(); ++i) */
-/*         cout << out[i] << " "; */
-/*       cout << endl; */
-/*     } */
-/*     cout << endl; */
-/*   } */
-/* } */
-
 void fill_initial(double *x, int argc, char **argv, Problem &problem) {
+  random_device rd;
+  mt19937 gen(rd());
   if (argc == 1) {
-    random_device rd;
-    mt19937 gen(rd());
     normal_distribution<> dist(0,0.4);
     generate_n(x,MULT*N,[&] {return dist(gen);});
   } else {
@@ -75,5 +58,20 @@ void fill_initial(double *x, int argc, char **argv, Problem &problem) {
       in >> x[i];
   }
 #ifdef ORBIT
+  // omin omax ocost ovars oMAX TCOST
+  vi comin(omin,omin+OS), comax(omax,omax+OS), cocost(ocost,ocost+OS), 
+     coMAX(oMAX,oMAX+OS), covars(ovars,ovars+OS);
+  vvi dp(ncombinations(comin,comax,cocost,TCOST));
+  int ix = uniform_int_distribution<>(0,dp.back().back()-1)(gen);
+  vi oix(combination(ix,comin,comax,cocost,TCOST,dp));
+  for (int i=0, curi=0; i < coMAX.size(); ++i, curi += coMAX[i] * covars[i]) {
+    for (int j=oix[i] * covars[i]; j < coMAX[i] * covars[i]; j += covars[i]) {
+      for (int k=0; k<covars[i]; ++k) {
+        x[(curi+j+k)*MULT] = 0;
+        if (MULT == 2) x[(curi+j+k)*MULT+1] = 0;
+        problem.SetParameterBlockConstant(x+(curi+j+k)*MULT);
+      }
+    }
+  }
 #endif
 }
