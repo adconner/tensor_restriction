@@ -64,6 +64,8 @@ void fill_initial(double *x, int argc, char **argv, Problem &problem) {
   vvi dp(ncombinations(comin,comax,cocost,TCOST));
   int ix = uniform_int_distribution<>(0,dp.back().back()-1)(gen);
   vi oix(combination(ix,comin,comax,cocost,TCOST,dp));
+  /* cout << ix << "/" << dp.back().back() << endl; */
+  /* for (int i=0; i<oix.size(); ++i) cout << oix[i] << " "; cout << endl; */
   for (int i=0, curi=0; i < OS; curi += coMAX[i] * covars[i], ++i) {
     for (int j=oix[i] * covars[i]; j < coMAX[i] * covars[i]; j += covars[i]) {
       for (int k=0; k<covars[i]; ++k) {
