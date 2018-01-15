@@ -15,7 +15,6 @@ vvi ncombinations(const vi &mi, const vi &ma, const vi &costs, int cost) {
   vvi dp(ma.size()+1,vi(cost+1));
   dp[0][0] = 1;
   vi tmp(cost+1);
-  cout << endl;
   for (int i=0; i<ma.size(); ++i) {
     for (int j=0; j<=cost; ++j) {
       tmp[j] = dp[i][j] + (j-costs[i] >= 0 ? tmp[j-costs[i]] : 0);
