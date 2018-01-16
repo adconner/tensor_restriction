@@ -20,7 +20,7 @@ main: $(ofiles)
 main.o: main.cpp prob.h util.h opts.h discrete.h initial.h
 util.o: util.cpp prob.h util.h opts.h
 discrete.o: discrete.h util.h opts.h prob.h
-initial.o: initial.h opts.h
+initial.o: initial.h opts.h prob.h
 
 # %.o: %.cpp
 # 	$(CXX) $(CXXFLAGS) $< -c -o $@
