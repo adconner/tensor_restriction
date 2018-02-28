@@ -27,7 +27,7 @@ void greedy_discrete(Problem &p, double *x,
     int fails = faillimit;
     vector<double> sav(x,x+N*MULT);
     for (int i=0; i<N; ++i) {
-      if (!p.IsParameterBlockConstant(x+get<2>(vals[i]))) {
+      if (!p.IsParameterBlockConstant(x+MULT*get<2>(vals[i]))) {
         double icost; p.Evaluate(eopts,&icost,0,0,0);
         if (verbose) {
           cout << "successes " << successes
@@ -42,7 +42,7 @@ void greedy_discrete(Problem &p, double *x,
         }
         x[get<2>(vals[i])*MULT] = get<1>(vals[i]).real();
         if (MULT == 2) x[get<2>(vals[i])*MULT + 1] = get<1>(vals[i]).imag();
-        p.SetParameterBlockConstant(x+get<2>(vals[i]));
+        p.SetParameterBlockConstant(x+MULT*get<2>(vals[i]));
         double scost; p.Evaluate(eopts,&scost,0,0,0);
         if (scost < std::max(icost,solved_fine)) {
           if (verbose) cout << " success free " << endl;
@@ -61,7 +61,7 @@ void greedy_discrete(Problem &p, double *x,
           if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
               << summary.final_cost << endl;
           counts[get<2>(vals[i])]++;
-          p.SetParameterBlockVariable(x+get<2>(vals[i]));
+          p.SetParameterBlockVariable(x+MULT*get<2>(vals[i]));
           copy(sav.begin(),sav.end(),x);
           if (faillimit > 0 && fails-- == 0) break;
         }
