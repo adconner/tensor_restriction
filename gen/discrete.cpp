@@ -30,6 +30,7 @@ void greedy_discrete(Problem &p, double *x,
       if (!p.IsParameterBlockConstant(x+MULT*get<2>(vals[i]))) {
         double icost; p.Evaluate(eopts,&icost,0,0,0);
         if (verbose) {
+          /* cout << icost << " "; */
           cout << "successes " << successes
             << " rem " << (faillimit == -1 ? N-i : fails)
             << " lfails " << counts[get<2>(vals[i])]
@@ -43,14 +44,15 @@ void greedy_discrete(Problem &p, double *x,
         x[get<2>(vals[i])*MULT] = get<1>(vals[i]).real();
         if (MULT == 2) x[get<2>(vals[i])*MULT + 1] = get<1>(vals[i]).imag();
         p.SetParameterBlockConstant(x+MULT*get<2>(vals[i]));
-        if (icost < solved_fine) {
+        double mcost; p.Evaluate(eopts,&mcost,0,0,0);
+        if (mcost < solved_fine) {
           if (verbose) cout << " success free " << endl;
           successes++;
           goto found;
         } else {
           Solver::Summary summary;
           Solve(opts,&p,&summary);
-          if (summary.final_cost <= std::max(icost,solved_fine)) { // improved or good enough
+          if (summary.final_cost <= std::max(icost,solved_fine) && *max_element(x,x+N*MULT) < max_elem) { // improved or good enough
             if (verbose) cout << " success " << summary.iterations.size() - 1
                 << " iterations" << endl;
             logsol(x,"out_partial_sparse.txt");
