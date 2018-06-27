@@ -30,5 +30,6 @@ const double attempt_sparse_thresh = 1e-12;
 // parameters for descretization
 const int iterations_discrete = 60;
 const double ftol_discrete = 0.4; // ~ solved_fine ^ (1/iterations_discrete)
+const double max_elem = 4.0;
 
 #endif

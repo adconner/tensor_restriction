@@ -157,6 +157,7 @@ int main(int argc, char** argv) {
       options.function_tolerance *= options.function_tolerance;
       greedy_discrete(problem,x,options,eopts,successes,DA_ZERO,N/10+1);
       greedy_discrete(problem,x,options,eopts,successes,DA_PM_ONE_ZERO,N/10+1);
+      /* greedy_discrete_pairs(problem,x,options,eopts,N/10+1); */
     }
     /* greedy_discrete_pairs(problem,x,options,eopts,N/10+1); */
     /* greedy_discrete(problem,x,options,eopts,successes,DA_ZERO,N/10+1); */
