@@ -150,9 +150,9 @@ int main(int argc, char** argv) {
     print_lines = false;
 
     int successes = 0;
-    greedy_discrete(problem,x,options,eopts,successes,DA_ZERO,N/2+1);
-    greedy_discrete(problem,x,options,eopts,successes,DA_PM_ONE_ZERO,N/10+1);
-    for (int refine=1; refine<=2; ++refine) {
+    greedy_discrete(problem,x,options,eopts,successes,DA_ZERO,N);
+    greedy_discrete(problem,x,options,eopts,successes,DA_PM_ONE_ZERO,N/2+1);
+    for (int refine=1; refine<=1; ++refine) {
       options.max_num_iterations *= 2;
       options.function_tolerance *= options.function_tolerance;
       greedy_discrete(problem,x,options,eopts,successes,DA_ZERO,N/10+1);
