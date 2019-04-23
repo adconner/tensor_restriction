@@ -5,7 +5,7 @@ void greedy_discrete(Problem &p, double *x,
     int &successes, DiscreteAttempt da, const int faillimit) {
   vector<int> counts(N);
   /* const double fail_penalty = 0.05; */
-  const double fail_penalty = 0.2;
+  const double fail_penalty = 1.0;
   while (true) {
     vector<tuple<double,cx,int> > vals(N);
     for (int i=0; i<N; ++i) {
