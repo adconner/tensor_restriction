@@ -144,6 +144,12 @@ int main(int argc, char** argv) {
       return 1;
     }
     if (verbose) cout << "solution seems good, sparsifying..." << endl;
+
+    sqalpha = 0.0;
+    for (int i=0; i<N; ++i) {
+      problem.AddResidualBlock(new L2Regularization, NULL, &x[MULT*i]);
+    }
+
     options.minimizer_type = TRUST_REGION;
     options.max_num_iterations = iterations_discrete;
     options.function_tolerance = ftol_discrete;

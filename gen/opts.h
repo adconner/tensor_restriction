@@ -6,7 +6,7 @@
 const bool verbose = true;
 const bool tostdout = false;
 const bool attemptsparse = true; 
-const bool l2_reg_always = attemptsparse;
+const bool l2_reg_always = false;
 const bool l2_reg_random_start = true;
 const bool record_iterations = false;
 const bool log_rough = !tostdout;
@@ -28,6 +28,10 @@ const double solved_fine = 1e-25;
 const double attempt_sparse_thresh = 1e-12;
 
 // parameters for descretization
+const int l2_reg_steps_discrete = 1;
+const double l2_reg_decay_discrete = 0.40;
+const double alphastart_discrete = 0.001;
+
 const int iterations_discrete = 60;
 const double ftol_discrete = 0.4; // ~ solved_fine ^ (1/iterations_discrete)
 const double max_elem = 1e8;

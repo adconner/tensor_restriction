@@ -1,8 +1,46 @@
 #include "discrete.h"
 
+void l2_reg_discrete(Problem &p, double *x, const Solver::Options & opts, const Problem::EvaluateOptions &eopts) {
+  if (l2_reg_steps_discrete == 0) return;
+  Solver::Options myopts(opts);
+  myopts.max_num_iterations = iterations_rough;
+  myopts.function_tolerance = ftol_rough;
+  /* print_lines=true; */
+
+  vector<double> sav(x,x+N*MULT);
+  sqalpha = std::sqrt(alphastart_discrete); 
+  for (int i=l2_reg_steps_discrete; i>0; --i, sqalpha *= std::sqrt(l2_reg_decay_discrete)) {
+    if (verbose) {
+      cout << "l2 regularization coefficient " << (sqalpha * sqalpha) << ".. "; cout.flush();
+    }
+    Solver::Summary summary;
+    Solve(myopts, &p, &summary);
+    if (verbose) {
+      cout << summary.initial_cost << " -> " << summary.final_cost << endl; cout.flush();
+    }
+  }
+
+  sqalpha = 0.0; 
+  if (verbose) {
+    cout << "getting back to solution.. "; cout.flush();
+  }
+  Solver::Summary summary;
+  Solve(myopts, &p, &summary);
+  if (verbose) {
+    cout << summary.initial_cost << " -> " << summary.final_cost << endl; cout.flush();
+  }
+
+  print_lines = false;
+  if (summary.final_cost > solved_fine) {
+    copy(sav.begin(),sav.end(),x);
+    if (verbose) cout << "l2 reg failed" << endl;
+  }
+}
+
 void greedy_discrete(Problem &p, double *x, 
     const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
     int &successes, DiscreteAttempt da, const int faillimit) {
+  l2_reg_discrete(p,x,opts,eopts);
   vector<int> counts(N);
   /* const double fail_penalty = 0.05; */
   const double fail_penalty = 1.0;
@@ -57,6 +95,7 @@ void greedy_discrete(Problem &p, double *x,
                 << " iterations" << endl;
             logsol(x,"out_partial_sparse.txt");
             successes++;
+            /* l2_reg_discrete(p,x,opts,eopts); */
             goto found;
           }
           if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
