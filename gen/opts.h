@@ -6,7 +6,7 @@
 const bool verbose = true;
 const bool tostdout = false;
 const bool attemptsparse = true; 
-const bool l2_reg_always = false;
+const bool l2_reg_always = attemptsparse;
 const bool l2_reg_random_start = true;
 const bool record_iterations = false;
 const bool log_rough = !tostdout;
