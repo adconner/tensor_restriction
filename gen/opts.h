@@ -35,5 +35,6 @@ const double alphastart_discrete = 0.001;
 const int iterations_discrete = 60;
 const double ftol_discrete = 0.4; // ~ solved_fine ^ (1/iterations_discrete)
 const double max_elem = 1e8;
+const double better_frac = 1.0; // will accept if still solved or no worse than this times previous
 
 #endif

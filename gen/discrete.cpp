@@ -90,9 +90,10 @@ void greedy_discrete(Problem &p, double *x,
         } else {
           Solver::Summary summary;
           Solve(opts,&p,&summary);
-          if (summary.final_cost <= std::max(icost,solved_fine) && *max_element(x,x+N*MULT) < max_elem) { // improved or good enough
+          if (summary.final_cost <= std::max(better_frac*icost,solved_fine) 
+              && *max_element(x,x+N*MULT) < max_elem) { // improved or good enough
             if (verbose) cout << " success " << summary.iterations.size() - 1
-                << " iterations" << endl;
+                << " iterations " << summary.final_cost << endl;
             logsol(x,"out_partial_sparse.txt");
             successes++;
             /* l2_reg_discrete(p,x,opts,eopts); */
