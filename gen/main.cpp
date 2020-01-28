@@ -112,10 +112,10 @@ int main(int argc, char** argv) {
     double cost; problem.Evaluate(eopts,&cost,0,0,0);
     if (cost > abort_worse) {
       if (verbose) cout << summary.FullReport() << endl << 
-        "cost " << cost << " not good enough to refine. Aborting" << endl;
+        "cost " << cost << "rough solution worse than abort_worse. Aborting" << endl;
       return 2;
     } else if (verbose) {
-      cout << "fine tuning solution..." << endl;
+      cout << "rough solution better than abort_worse. Fine tuning solution..." << endl;
     }
   }
 
@@ -138,12 +138,12 @@ int main(int argc, char** argv) {
   if (attemptsparse) {
     if (summary.final_cost > attempt_sparse_thresh) {
       if (verbose) {
-        cout << "accuracy fail, not sparsifying" << endl;
+        cout << "solution worse than attempt_sparse_thresh, not sparsifying" << endl;
         cout << summary.FullReport() << "\n";
       }
       return 1;
     }
-    if (verbose) cout << "solution seems good, sparsifying..." << endl;
+    if (verbose) cout << "solution better than attempt_sparse_thresh, sparsifying..." << endl;
 
     sqalpha = 0.0;
     for (int i=0; i<N; ++i) {
