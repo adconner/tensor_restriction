@@ -83,8 +83,8 @@ void greedy_discrete(Problem &p, double *x,
         if (MULT == 2) x[get<2>(vals[i])*MULT + 1] = get<1>(vals[i]).imag();
         p.SetParameterBlockConstant(x+MULT*get<2>(vals[i]));
         double mcost; p.Evaluate(eopts,&mcost,0,0,0);
-        if (mcost < solved_fine) {
-          if (verbose) cout << " success free " << endl;
+        if (mcost < std::max(better_frac*icost,solved_fine)) {
+          if (verbose) cout << " success free " << icost << endl;
           successes++;
           goto found;
         } else {
