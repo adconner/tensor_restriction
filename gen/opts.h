@@ -37,4 +37,12 @@ const double ftol_discrete = 0.4; // ~ solved_fine ^ (1/iterations_discrete)
 const double max_elem = 1e8;
 const double better_frac = 1.0; // will accept if still solved or no worse than this times previous
 
+/*
+ * some settings for sparsifying border rank decomps 
+ *  const double solved_fine = 1e-5;
+ *  const double attempt_sparse_thresh = 1e-5;
+ *  const int iterations_discrete = 120;
+ *  const double ftol_discrete = 0.0004; // ~ solved_fine ^ (1/iterations_discrete)
+ */
+
 #endif
