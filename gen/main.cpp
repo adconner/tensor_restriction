@@ -65,6 +65,16 @@ int main(int argc, char** argv) {
 
   fill_initial(x,argc,argv,problem);
 
+  /* fill_initial(x,1,argv,problem); */
+  /* int newN = stoi(argv[1]); */
+  /* newN *= 25; */
+  /* for (int i=MULT*newN; i < MULT*N; ++i) { */
+  /*   for (int j=0; j<MULT; ++j) { */
+  /*     x[MULT*i+j] = 0; */
+  /*   } */
+  /*   problem.SetParameterBlockConstant(x+MULT*i); */
+  /* } */
+
   Solver::Options options;
   solver_opts(options);
   options.callbacks.push_back(new SolvedCallback);
