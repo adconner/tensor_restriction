@@ -48,9 +48,11 @@ vi combination(int ix, const vi &mi, const vi &ma, const vi &costs, int cost, co
 void fill_initial(double *x, int argc, char **argv, Problem &problem) {
   random_device rd;
   mt19937 gen(rd());
+  /* srand(time(0)); */
   if (argc == 1) {
     normal_distribution<> dist(0,0.4);
     generate_n(x,MULT*N,[&] {return dist(gen);});
+    /* generate_n(x,MULT*N,[&] {return 1.0 - 2*(rand() / (double)RAND_MAX);}); */
   } else {
     ifstream in(argv[1]);
     for (int i=0; i<MULT*N; ++i)
