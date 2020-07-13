@@ -15,9 +15,9 @@ const double ftol = 1e-13;
 const double gtol = 1e-30;
 const double ptol = 1e-30;
 
-const int l2_reg_steps = 3;
-const double l2_reg_decay = 0.60;
-const double alphastart = 0.01;
+const int l2_reg_steps = 8;
+const double l2_reg_decay = 0.316227766016838; // sqrt(0.1)
+const double alphastart = 0.001;
 const double ftol_rough = 1e-3;
 const int iterations_rough = 500;
 const double abort_worse = 1e-4;
