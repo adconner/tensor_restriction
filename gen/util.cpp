@@ -39,7 +39,7 @@ CallbackReturnType PrintCallback::operator()(const IterationSummary& summary) {
     double ma = accumulate(x,x+MULT*N,0.0,[](double a, double b) {return max(std::abs(a),std::abs(b));} ); 
     cout << summary.iteration << " " << summary.cost << " " << ma <<
       " " << summary.relative_decrease << " " <<
-      (summary.cost_change / summary.cost) / ((ma - ma_last) / ma)
+      ((ma - ma_last) / ma) / (summary.cost_change / summary.cost)
       << endl;
     ma_last = ma;
     /* if (ma > 4 && summary.iteration >= 10) */
