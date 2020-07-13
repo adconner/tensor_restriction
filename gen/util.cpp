@@ -33,12 +33,15 @@ CallbackReturnType RecordCallback::operator()(const IterationSummary& summary) {
   return SOLVER_CONTINUE;
 }
 
-PrintCallback::PrintCallback(double *_x) : x(_x) {}
+PrintCallback::PrintCallback(double *_x) : x(_x), ma_last(1.0) {}
 CallbackReturnType PrintCallback::operator()(const IterationSummary& summary) {
   if (print_lines) {
     double ma = accumulate(x,x+MULT*N,0.0,[](double a, double b) {return max(std::abs(a),std::abs(b));} ); 
     cout << summary.iteration << " " << summary.cost << " " << ma <<
-      " " << summary.relative_decrease << endl;
+      " " << summary.relative_decrease << " " <<
+      (summary.cost_change / summary.cost) / ((ma - ma_last) / ma)
+      << endl;
+    ma_last = ma;
     /* if (ma > 4 && summary.iteration >= 10) */
     /*   return SOLVER_ABORT; */
   }

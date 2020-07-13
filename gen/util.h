@@ -32,6 +32,7 @@ class PrintCallback : public IterationCallback {
     PrintCallback(double *_x);
     CallbackReturnType operator()(const IterationSummary& summary); 
     double *x;
+    double ma_last;
 };
 
 class L2Regularization : public SizedCostFunction<MULT,MULT> {
