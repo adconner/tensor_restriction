@@ -167,7 +167,7 @@ int main(int argc, char** argv) {
 
     int successes = 0;
     greedy_discrete(problem,x,options,eopts,successes,DA_ZERO,N);
-    greedy_discrete(problem,x,options,eopts,successes,DA_PM_ONE_ZERO,N/2+1);
+    greedy_discrete(problem,x,options,eopts,successes,DA_PM_ONE,N);
     for (int refine=1; refine<=1; ++refine) {
       options.max_num_iterations *= 2;
       options.function_tolerance *= options.function_tolerance;
