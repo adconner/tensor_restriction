@@ -24,6 +24,7 @@ void l2_reg_discrete(Problem &p, double *x, const Solver::Options & opts, const 
   if (verbose) {
     cout << "getting back to solution.. "; cout.flush();
   }
+  myopts.function_tolerance = ftol_rough*0.1;
   Solver::Summary summary;
   Solve(myopts, &p, &summary);
   if (verbose) {
@@ -39,8 +40,9 @@ void l2_reg_discrete(Problem &p, double *x, const Solver::Options & opts, const 
 
 void greedy_discrete(Problem &p, double *x, 
     const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
-    int &successes, DiscreteAttempt da, const int faillimit) {
-  vector<int> counts(N);
+    int &successes, DiscreteAttempt da, int faillimit) {
+  vector<int> fails(N);
+  faillimit = std::min(faillimit,N - successes);
   while (true) {
     vector<tuple<double,cx,int> > vals(N);
     for (int i=0; i<N; ++i) {
@@ -59,35 +61,35 @@ void greedy_discrete(Problem &p, double *x,
     sort(vals.begin(),vals.end(),[&](const auto &a,const auto &b) {
         auto key = [&](const auto &a) {
           double cost; cx target; int i; tie(cost,target,i) = a;
-          int fails = counts[i];
-          return cost + 1.0 * fails;
-          /* return make_tuple(!(cost < 1e-13), fails, */
+          return make_tuple(fails[i], cost + 1.0 * fails[i]);
+          /* return make_tuple(fails[i], !(cost < 1e-13), */
           /*     ! (i % 25 == 0), */
           /*     ! ((i % 5 == 0) || ((i / 5) % 5 == 0)), */
+          /*     i, */
           /*     cost ); */
         };
         return key(a) < key(b);
     });
-    int fails = faillimit;
     vector<double> sav(x,x+N*MULT);
     for (int i=0; i<N; ++i) {
-      if (!p.IsParameterBlockConstant(x+MULT*get<2>(vals[i]))) {
+      double cost; cx target; int xi; tie(cost,target,xi) = vals[i];
+      if (fails[i] == 0 && !p.IsParameterBlockConstant(x+MULT*xi)) {
         double icost; p.Evaluate(eopts,&icost,0,0,0);
         if (verbose) {
           /* cout << icost << " "; */
           cout << "successes " << successes
-            << " rem " << (faillimit == -1 ? N-i : fails)
-            << " lfails " << counts[get<2>(vals[i])]
-            << " setting " << "x[" << get<2>(vals[i]) << "] = "
-            << get<1>(vals[i]).real();
-          if (MULT == 2) cout << ", x[" << get<2>(vals[i]) + 1 << "] = "
-            << get<1>(vals[i]).imag();
+            << " fails " << std::accumulate(fails.begin(),fails.end(),0)
+            << " lfails " << fails[xi]
+            << " setting " << "x[" << MULT*xi << "] = "
+            << target.real();
+          if (MULT == 2) cout << ", x[" << MULT*xi + 1 << "] = "
+            << target.imag();
           cout << "...";
           cout.flush();
         }
-        x[get<2>(vals[i])*MULT] = get<1>(vals[i]).real();
-        if (MULT == 2) x[get<2>(vals[i])*MULT + 1] = get<1>(vals[i]).imag();
-        p.SetParameterBlockConstant(x+MULT*get<2>(vals[i]));
+        x[xi*MULT] = target.real();
+        if (MULT == 2) x[xi*MULT + 1] = target.imag();
+        p.SetParameterBlockConstant(x+MULT*xi);
         double mcost; p.Evaluate(eopts,&mcost,0,0,0);
         if (mcost < std::max(better_frac*icost,solved_fine)) {
           if (verbose) cout << " success free " << icost << endl;
@@ -107,10 +109,10 @@ void greedy_discrete(Problem &p, double *x,
           }
           if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
               << summary.final_cost << endl;
-          counts[get<2>(vals[i])]++;
-          p.SetParameterBlockVariable(x+MULT*get<2>(vals[i]));
+          p.SetParameterBlockVariable(x+MULT*xi);
+          fails[xi]++;
           copy(sav.begin(),sav.end(),x);
-          if (faillimit > 0 && fails-- == 0) break;
+          if (std::accumulate(fails.begin(),fails.end(),0) == faillimit) break;
         }
       }
     }
