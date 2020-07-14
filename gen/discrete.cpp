@@ -48,7 +48,7 @@ void greedy_discrete(Problem &p, double *x,
       switch (da) {
         case DA_ZERO: target = 0.0; break;
         case DA_PM_ONE: target = x[i*MULT] >= 0 ? 1.0 : -1.0; break;
-        case DA_PM_ONE_ZERO: target = std::abs(x[i*MULT]) < 1e-20 ? 0.0 : (x[i*MULT] >= 0 ? 1.0 : -1.0); break;
+        case DA_PM_ONE_ZERO: target = std::abs(x[i*MULT]) < 1e-10 ? 0.0 : (x[i*MULT] >= 0 ? 1.0 : -1.0); break;
         case DA_INTEGER: target = std::round(x[i*MULT]); break;
       }
       cx cur = MULT == 1 ? cx(x[i]) : cx(x[i*MULT],x[i*MULT+1]);
@@ -61,7 +61,7 @@ void greedy_discrete(Problem &p, double *x,
           double cost; cx target; int i; tie(cost,target,i) = a;
           int fails = counts[i];
           return cost + 1.0 * fails;
-          /* return make_tuple(!(cost < 1e-20), fails, */
+          /* return make_tuple(!(cost < 1e-13), fails, */
           /*     ! (i % 25 == 0), */
           /*     ! ((i % 5 == 0) || ((i / 5) % 5 == 0)), */
           /*     cost ); */
