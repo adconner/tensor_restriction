@@ -40,7 +40,6 @@ void l2_reg_discrete(Problem &p, double *x, const Solver::Options & opts, const 
 void greedy_discrete(Problem &p, double *x, 
     const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
     int &successes, DiscreteAttempt da, const int faillimit) {
-  l2_reg_discrete(p,x,opts,eopts);
   vector<int> counts(N);
   while (true) {
     vector<tuple<double,cx,int> > vals(N);
@@ -59,7 +58,7 @@ void greedy_discrete(Problem &p, double *x,
     }
     sort(vals.begin(),vals.end(),[&](const auto &a,const auto &b) {
         auto key = [&](const auto &a) {
-          double cost; cx target; int i; tie(cost,curval,i) = a;
+          double cost; cx target; int i; tie(cost,target,i) = a;
           int fails = counts[i];
           return cost + 1.0 * fails;
           /* return make_tuple(!(cost < 1e-20), fails, */
