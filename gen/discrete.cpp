@@ -42,8 +42,6 @@ void greedy_discrete(Problem &p, double *x,
     int &successes, DiscreteAttempt da, const int faillimit) {
   l2_reg_discrete(p,x,opts,eopts);
   vector<int> counts(N);
-  /* const double fail_penalty = 0.05; */
-  const double fail_penalty = 1.0;
   while (true) {
     vector<tuple<double,cx,int> > vals(N);
     for (int i=0; i<N; ++i) {
@@ -55,17 +53,19 @@ void greedy_discrete(Problem &p, double *x,
         case DA_INTEGER: target = std::round(x[i*MULT]); break;
       }
       cx cur = MULT == 1 ? cx(x[i]) : cx(x[i*MULT],x[i*MULT+1]);
-      get<0>(vals[i]) = std::abs(cur - target) + fail_penalty * counts[i];
+      get<0>(vals[i]) = std::abs(cur - target);
       get<1>(vals[i]) = target;
       get<2>(vals[i]) = i;
     }
-    sort(vals.begin(),vals.end(),[](const auto &a,const auto &b) {
-        auto key = [](const auto &a) {
-          return get<0>(a);
-          /* int i = get<2>(a); */
-          /* bool tl = i % 25 == 0; */
-          /* bool tol = (i % 5 == 0) || ((i / 5) % 5 == 0); */
-          /* return make_tuple( !tl,!tol,get<0>(a) ); */
+    sort(vals.begin(),vals.end(),[&](const auto &a,const auto &b) {
+        auto key = [&](const auto &a) {
+          double cost; cx target; int i; tie(cost,curval,i) = a;
+          int fails = counts[i];
+          return cost + 1.0 * fails;
+          /* return make_tuple(!(cost < 1e-20), fails, */
+          /*     ! (i % 25 == 0), */
+          /*     ! ((i % 5 == 0) || ((i / 5) % 5 == 0)), */
+          /*     cost ); */
         };
         return key(a) < key(b);
     });
