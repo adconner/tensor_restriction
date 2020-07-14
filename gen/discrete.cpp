@@ -42,7 +42,7 @@ void greedy_discrete(Problem &p, double *x,
     const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
     int &successes, DiscreteAttempt da, int faillimit) {
   vector<int> fails(N);
-  faillimit = std::min(faillimit,N - successes);
+  if (faillimit == -1) faillimit = N - successes;
   while (true) {
     vector<tuple<double,cx,int> > vals(N);
     for (int i=0; i<N; ++i) {
@@ -61,11 +61,11 @@ void greedy_discrete(Problem &p, double *x,
     sort(vals.begin(),vals.end(),[&](const auto &a,const auto &b) {
         auto key = [&](const auto &a) {
           double cost; cx target; int i; tie(cost,target,i) = a;
-          return make_tuple(fails[i], cost + 1.0 * fails[i]);
-          /* return make_tuple(fails[i], !(cost < 1e-13), */
+          return make_tuple(!(cost < 1e-13), fails[i], cost + 1.0 * fails[i]);
+          /* return make_tuple(!(cost < 1e-13), fails[i], */ 
           /*     ! (i % 25 == 0), */
           /*     ! ((i % 5 == 0) || ((i / 5) % 5 == 0)), */
-          /*     i, */
+          /*     i, */ 
           /*     cost ); */
         };
         return key(a) < key(b);
@@ -73,7 +73,7 @@ void greedy_discrete(Problem &p, double *x,
     vector<double> sav(x,x+N*MULT);
     for (int i=0; i<N; ++i) {
       double cost; cx target; int xi; tie(cost,target,xi) = vals[i];
-      if (fails[i] == 0 && !p.IsParameterBlockConstant(x+MULT*xi)) {
+      if (!p.IsParameterBlockConstant(x+MULT*xi)) {
         double icost; p.Evaluate(eopts,&icost,0,0,0);
         if (verbose) {
           /* cout << icost << " "; */
