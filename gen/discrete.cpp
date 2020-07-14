@@ -51,7 +51,7 @@ void greedy_discrete(Problem &p, double *x,
       switch (da) {
         case DA_ZERO: target = 0.0; break;
         case DA_PM_ONE: target = x[i*MULT] >= 0 ? 1.0 : -1.0; break;
-        case DA_PM_ONE_ZERO: target = std::abs(x[i*MULT]) < 1e-5 ? 0.0 : (x[i*MULT] >= 0 ? 1.0 : -1.0); break;
+        case DA_PM_ONE_ZERO: target = std::abs(x[i*MULT]) < 1e-20 ? 0.0 : (x[i*MULT] >= 0 ? 1.0 : -1.0); break;
         case DA_INTEGER: target = std::round(x[i*MULT]); break;
       }
       cx cur = MULT == 1 ? cx(x[i]) : cx(x[i*MULT],x[i*MULT+1]);
@@ -60,7 +60,14 @@ void greedy_discrete(Problem &p, double *x,
       get<2>(vals[i]) = i;
     }
     sort(vals.begin(),vals.end(),[](const auto &a,const auto &b) {
-        return get<0>(a) < get<0>(b);
+        auto key = [](const auto &a) {
+          return get<0>(a);
+          /* int i = get<2>(a); */
+          /* bool tl = i % 25 == 0; */
+          /* bool tol = (i % 5 == 0) || ((i / 5) % 5 == 0); */
+          /* return make_tuple( !tl,!tol,get<0>(a) ); */
+        };
+        return key(a) < key(b);
     });
     int fails = faillimit;
     vector<double> sav(x,x+N*MULT);
