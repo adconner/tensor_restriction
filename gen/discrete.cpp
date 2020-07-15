@@ -108,9 +108,9 @@ void greedy_discrete(Problem &p, double *x,
               && *max_element(x,x+N*MULT) < max_elem) { // improved or good enough
             if (verbose) cout << " success " << summary.iterations.size() - 1
                 << " iterations " << summary.final_cost << endl;
-            logsol(x,"out_partial_sparse.txt");
             successes++;
             l2_reg_discrete(p,x,opts,eopts);
+            logsol(x,"out_partial_sparse.txt");
             goto found;
           }
           if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
