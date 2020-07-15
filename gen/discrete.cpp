@@ -130,6 +130,7 @@ void greedy_discrete(Problem &p, double *x,
 void greedy_discrete_pairs(Problem &p, double *x, 
     const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
     const int trylimit) {
+  int successes = 0; // not from outside because these dont stack with outside
   map<int,int> vix;
   vector<int> vs;
   for (int i=0; i<N; ++i) {
@@ -177,14 +178,26 @@ void greedy_discrete_pairs(Problem &p, double *x,
         }
       }
     }
-    sort(diffs.begin(), diffs.end());
+    int skip = 1;
+    int mid = min(skip,(int)diffs.size());
+    partial_sort(diffs.begin(), diffs.begin() + mid, diffs.end());
 
     vector<double> sav(x,x+N*MULT);
-    for (const auto & curdiff : diffs) {
+    for (int ii=0; ii<diffs.size(); ++ii) {
+      if (ii == mid) {
+        mid += skip; mid = min(mid,(int)diffs.size());
+        skip *= 2;
+        partial_sort(diffs.begin()+ii, diffs.begin() + mid, diffs.end());
+      }
+
+      const auto &curdiff = diffs[ii];
       double diff, alpha, beta; int i,j; tie(diff,i,j,alpha,beta) = curdiff;
       double icost; p.Evaluate(Problem::EvaluateOptions(),&icost,0,0,0);
       if (verbose) {
-        cout << "unfixed " << vals.size() << " setting " << alpha << "*x[" << i << "] + " 
+        cout << "successes " << successes 
+          << " rem " << (trylimit - tries)
+          /* << " unfixed " << vals.size() */ 
+          << " setting " << alpha << "*x[" << i << "] + " 
           << beta << "*x[" << j << "] = 0...";
         cout.flush();
       }
@@ -193,6 +206,7 @@ void greedy_discrete_pairs(Problem &p, double *x,
       if (diff < 1e-13) {
         if (verbose) cout << " success free " << diff << endl;
         unio(i,j);
+        successes++;
         goto found;
       } else {
         Solver::Summary summary;
@@ -202,6 +216,7 @@ void greedy_discrete_pairs(Problem &p, double *x,
           if (verbose) cout << " success " << summary.iterations.size() - 1
               << " iterations " << summary.final_cost << endl;
           unio(i,j);
+          successes++;
           l2_reg_discrete(p,x,opts,eopts);
           logsol(x,"out_partial_sparse.txt");
           goto found;
