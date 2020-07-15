@@ -29,7 +29,7 @@ const double attempt_sparse_thresh = 1e-12;
 
 // parameters for descretization
 const int l2_reg_steps_discrete = 1;
-const double l2_reg_decay_discrete = 0.40;
+const double l2_reg_decay_discrete = 0.316227766016838; // sqrt(0.1)
 const double alphastart_discrete = 0.001;
 
 const int iterations_discrete = 60;
