@@ -66,12 +66,13 @@ void greedy_discrete(Problem &p, double *x,
     sort(vals.begin(),vals.end(),[&](const auto &a,const auto &b) {
         auto key = [&](const auto &a) {
           double cost; cx target; int i; tie(cost,target,i) = a;
-          return make_tuple(!(cost < 1e-13), fails[i], cost + 1.0 * fails[i]);
-          /* return make_tuple(!(cost < 1e-13), fails[i], */ 
-          /*     ! (i % 25 == 0), */
-          /*     ! ((i % 5 == 0) || ((i / 5) % 5 == 0)), */
-          /*     i, */ 
-          /*     cost ); */
+          return make_tuple(!(cost < 1e-13), fails[i], 
+              /* (i % 25 == 0), */
+              /* ((i % 5 == 0) || ((i / 5) % 5 == 0)), */
+              /* ! (i % 25 == 0), */
+              /* ! ((i % 5 == 0) || ((i / 5) % 5 == 0)), */
+              /* i, */ 
+              cost );
         };
         return key(a) < key(b);
     });
