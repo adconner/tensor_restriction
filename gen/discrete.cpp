@@ -129,55 +129,85 @@ void greedy_discrete(Problem &p, double *x,
 
 void greedy_discrete_pairs(Problem &p, double *x, 
     const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
-    const int faillimit) {
-  set<pair<int,int> > fixed;
+    const int trylimit) {
+  map<int,int> vix;
+  vector<int> vs;
+  for (int i=0; i<N; ++i) {
+    if (!p.IsParameterBlockConstant(x+MULT*i)) {
+      vix[i] = vs.size();
+      vs.push_back(i);
+    }
+  }
+  for (auto it = vix.begin(); it != vix.end(); ++it) {
+    vs[it->second] = it->first;
+  }
+
+  vector<int> par(vs.size()); for (int i=0; i<vs.size(); ++i) par[i] = i;
+  function<int(int)> find = [&](int i) {
+    if (par[i] == i) return i;
+    int j = find(par[i]);
+    par[i] = j;
+    return j;
+  };
+  auto unio = [&](int i, int j) {
+    i = find(i); j = find(j);
+    if ((i+j) % 2)
+      par[i] = j;
+    else
+      par[j] = i;
+  };
+
+  int tries = 0;
   while (true) {
-    vector<pair<double,pair<int,int> > > vals(N * (N-1) / 2);
-    int ix = 0;
-    for (int i=0; i<N; ++i) {
-      for (int j=i+1; j<N; ++j) {
-        vals[ix].second.first = i*MULT;
-        vals[ix].second.second = j*MULT;
-        for (int k=0; k<MULT; ++k) {
-          double dx = x[i*MULT + k] - x[j*MULT + k];
-          vals[ix].first += dx*dx;
+    map<int, cx> vals;
+    for (int i=0; i<vs.size(); ++i) {
+      int j = find(i);
+      vals[j] = MULT == 1 ? cx(x[i]) : cx(x[j*MULT],x[j*MULT+1]);
+    }
+
+    vector<tuple<double,int,int,double,double> > diffs;
+    vector<pair<double, double> > alphabetas { {1.0, -1.0}, {1.0, 1.0} };
+    for (auto it=vals.begin(); it != vals.end(); ++it) {
+      auto jt = it; ++jt;
+      for (auto ab : alphabetas) {
+        for (; jt != vals.end(); ++jt) {
+          diffs.push_back(make_tuple(std::abs(ab.first*it->second + ab.second*jt->second),
+                std::min(it->first,jt->first),std::max(it->first,jt->first), 
+                ab.first, ab.second));
         }
-        ix++;
       }
     }
-    sort(vals.begin(),vals.end());
-    int fails = faillimit;
+    sort(diffs.begin(), diffs.end());
+
     vector<double> sav(x,x+N*MULT);
-    for (int i=0; i<vals.size(); ++i) {
-      if (!p.IsParameterBlockConstant(x+vals[i].second.first) &&
-          !p.IsParameterBlockConstant(x+vals[i].second.second) && 
-          !fixed.count(vals[i].second)) {
-        double icost; p.Evaluate(eopts,&icost,0,0,0);
-        if (verbose) {
-          cout << "cost " << icost << " attempting to set "; 
-          cout << "x[" << vals[i].second.first << "] = x[" 
-            << vals[i].second.second << "]...";
-          cout.flush();
-        }
-        auto rid = p.AddResidualBlock(new LinearCombination(1.0,-1.0), NULL, 
-            {x+vals[i].second.first, x+vals[i].second.second});
-        Solver::Summary summary;
-        Solve(opts,&p,&summary);
-        if (summary.final_cost <= std::max(icost,solved_fine)) {
-          fixed.insert(vals[i].second);
-          if (verbose) cout << " success " << summary.iterations.size() - 1
-              << " iterations" << endl;
-          logsol(x,"out_partial_sparse.txt");
-          goto found;
-        }
-        if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
-          << summary.final_cost << endl;
-        p.RemoveResidualBlock(rid);
-        copy(sav.begin(),sav.end(),x);
-        if (faillimit > 0 && fails-- == 0) break;
+    for (const auto & curdiff : diffs) {
+      double diff, alpha, beta; int i,j; tie(diff,i,j,alpha,beta) = curdiff;
+      double icost; p.Evaluate(eopts,&icost,0,0,0);
+      if (verbose) {
+        cout << " setting " << alpha << "*x[" << i << "] + " 
+          << beta << "*x[" << j << "] = 0...";
+        cout.flush();
       }
+      auto rid = p.AddResidualBlock(new LinearCombination(alpha,beta), NULL, {x+MULT*i, x+MULT*j});
+      Solver::Summary summary;
+      Solve(opts,&p,&summary);
+      tries++; 
+      if (summary.final_cost <= std::max(better_frac*icost,solved_fine)) {
+        if (verbose) cout << " success " << summary.iterations.size() - 1
+            << " iterations " << summary.final_cost << endl;
+        unio(i,j);
+        l2_reg_discrete(p,x,opts,eopts);
+        logsol(x,"out_partial_sparse.txt");
+        goto found;
+      }
+      if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
+        << summary.final_cost << endl;
+      p.RemoveResidualBlock(rid);
+      copy(sav.begin(),sav.end(),x);
+      if (tries >= trylimit) break;
     }
     break;
     found:;
+    if (tries >= trylimit) break;
   }
 }

@@ -15,6 +15,6 @@ void greedy_discrete(Problem &p, double *x,
     int &successes, DiscreteAttempt da = DA_ZERO, int trylimit = 10);
 void greedy_discrete_pairs(Problem &p, double *x, 
     const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
-    const int faillimit = -1);
+    const int trylimit = 10);
 
 #endif
