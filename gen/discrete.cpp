@@ -47,18 +47,32 @@ void l2_reg_discrete(Problem &p, double *x, const Solver::Options & opts, const 
 void greedy_discrete(Problem &p, double *x, 
     const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
     int &successes, DiscreteAttempt da, int trylimit) {
+  auto get_target = [&](cx cur) {
+    // if a search over only reals, the real part of the target is used
+    if (da == DA_ZERO || abs(cur) < 1e-10) return cx(0.0);
+    vector<cx> targets;
+    if (da == DA_PM_ONE) {
+      targets = { {1.0, 0.0}, {-1.0, 0.0} };
+    } else if (da == DA_E3) {
+      targets = { {1.0,0.0}, {-0.5, 0.866025403784439}, {-0.5, -0.866025403784439} };
+    }
+    double smallest = 1e7;
+    cx target = 0.0;
+    for (cx tar : targets) {
+      double dist = abs(cur - tar);
+      if (dist < smallest) {
+        smallest = dist;
+        target = tar;
+      }
+    }
+    return target;
+  };
   vector<int> fails(N);
   while (true) {
     vector<tuple<double,cx,int> > vals(N);
     for (int i=0; i<N; ++i) {
-      cx target;
-      switch (da) {
-        case DA_ZERO: target = 0.0; break;
-        case DA_PM_ONE: target = x[i*MULT] >= 0 ? 1.0 : -1.0; break;
-        case DA_PM_ONE_ZERO: target = std::abs(x[i*MULT]) < 1e-10 ? 0.0 : (x[i*MULT] >= 0 ? 1.0 : -1.0); break;
-        case DA_INTEGER: target = std::round(x[i*MULT]); break;
-      }
       cx cur = MULT == 1 ? cx(x[i]) : cx(x[i*MULT],x[i*MULT+1]);
+      cx target = get_target(cur);
       get<0>(vals[i]) = std::abs(cur - target);
       get<1>(vals[i]) = target;
       get<2>(vals[i]) = i;

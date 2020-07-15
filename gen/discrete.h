@@ -5,8 +5,7 @@
 enum DiscreteAttempt {
   DA_ZERO,
   DA_PM_ONE,
-  DA_PM_ONE_ZERO,
-  DA_INTEGER 
+  DA_E3
 };
 void l2_reg_discrete(Problem &p, double *x, const Solver::Options & opts, 
     const Problem::EvaluateOptions &eopts);
