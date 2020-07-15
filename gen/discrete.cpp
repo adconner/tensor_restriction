@@ -118,7 +118,7 @@ void greedy_discrete(Problem &p, double *x,
           p.SetParameterBlockVariable(x+MULT*xi);
           fails[xi]++;
           copy(sav.begin(),sav.end(),x);
-          if (std::accumulate(fails.begin(),fails.end(),0)+successes == trylimit) break;
+          if (std::accumulate(fails.begin(),fails.end(),0)+successes >= trylimit) break;
         }
       }
     }
