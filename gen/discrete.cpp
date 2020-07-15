@@ -46,9 +46,8 @@ void l2_reg_discrete(Problem &p, double *x, const Solver::Options & opts, const 
 
 void greedy_discrete(Problem &p, double *x, 
     const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
-    int &successes, DiscreteAttempt da, int faillimit) {
+    int &successes, DiscreteAttempt da, int trylimit) {
   vector<int> fails(N);
-  if (faillimit == -1) faillimit = N - successes;
   while (true) {
     vector<tuple<double,cx,int> > vals(N);
     for (int i=0; i<N; ++i) {
@@ -118,7 +117,7 @@ void greedy_discrete(Problem &p, double *x,
           p.SetParameterBlockVariable(x+MULT*xi);
           fails[xi]++;
           copy(sav.begin(),sav.end(),x);
-          if (std::accumulate(fails.begin(),fails.end(),0) == faillimit) break;
+          if (std::accumulate(fails.begin(),fails.end(),0)+successes == trylimit) break;
         }
       }
     }
