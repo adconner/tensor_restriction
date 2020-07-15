@@ -104,7 +104,7 @@ void greedy_discrete(Problem &p, double *x,
                 << " iterations " << summary.final_cost << endl;
             logsol(x,"out_partial_sparse.txt");
             successes++;
-            /* l2_reg_discrete(p,x,opts,eopts); */
+            l2_reg_discrete(p,x,opts,eopts);
             goto found;
           }
           if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
