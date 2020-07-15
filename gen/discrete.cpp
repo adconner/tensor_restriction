@@ -7,34 +7,40 @@ void l2_reg_discrete(Problem &p, double *x, const Solver::Options & opts, const 
   myopts.function_tolerance = ftol_rough;
   /* print_lines=true; */
 
-  vector<double> sav(x,x+N*MULT);
-  sqalpha = std::sqrt(alphastart_discrete); 
-  for (int i=l2_reg_steps_discrete; i>0; --i, sqalpha *= std::sqrt(l2_reg_decay_discrete)) {
-    if (verbose) {
-      cout << "l2 regularization coefficient " << (sqalpha * sqalpha) << ".. "; cout.flush();
+  double start_alpha = alphastart_discrete;
+  while (true) {
+    vector<double> sav(x,x+N*MULT);
+    sqalpha = std::sqrt(start_alpha); 
+    for (int i=l2_reg_steps_discrete; i>0; --i, sqalpha *= std::sqrt(l2_reg_decay_discrete)) {
+      if (verbose) {
+        cout << "l2 regularization coefficient " << (sqalpha * sqalpha) << ".. "; cout.flush();
+      }
+      Solver::Summary summary;
+      Solve(myopts, &p, &summary);
+      if (verbose) {
+        cout << summary.initial_cost << " -> " << summary.final_cost << endl; cout.flush();
+      }
     }
+
+    sqalpha = 0.0; 
+    if (verbose) {
+      cout << "getting back to solution.. "; cout.flush();
+    }
+    myopts.function_tolerance = ftol_rough*0.1;
     Solver::Summary summary;
     Solve(myopts, &p, &summary);
     if (verbose) {
       cout << summary.initial_cost << " -> " << summary.final_cost << endl; cout.flush();
     }
-  }
 
-  sqalpha = 0.0; 
-  if (verbose) {
-    cout << "getting back to solution.. "; cout.flush();
-  }
-  myopts.function_tolerance = ftol_rough*0.1;
-  Solver::Summary summary;
-  Solve(myopts, &p, &summary);
-  if (verbose) {
-    cout << summary.initial_cost << " -> " << summary.final_cost << endl; cout.flush();
-  }
-
-  print_lines = false;
-  if (summary.final_cost > solved_fine) {
-    copy(sav.begin(),sav.end(),x);
-    if (verbose) cout << "l2 reg failed" << endl;
+    print_lines = false;
+    if (summary.final_cost > solved_fine) {
+      copy(sav.begin(),sav.end(),x);
+      if (verbose) cout << "l2 reg failed, retrying" << endl;
+    } else{
+      break;
+    }
+    start_alpha *= l2_reg_decay_discrete;
   }
 }
 
