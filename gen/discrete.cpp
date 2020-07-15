@@ -182,29 +182,36 @@ void greedy_discrete_pairs(Problem &p, double *x,
     vector<double> sav(x,x+N*MULT);
     for (const auto & curdiff : diffs) {
       double diff, alpha, beta; int i,j; tie(diff,i,j,alpha,beta) = curdiff;
-      double icost; p.Evaluate(eopts,&icost,0,0,0);
+      double icost; p.Evaluate(Problem::EvaluateOptions(),&icost,0,0,0);
       if (verbose) {
-        cout << " setting " << alpha << "*x[" << i << "] + " 
+        cout << "unfixed " << vals.size() << " setting " << alpha << "*x[" << i << "] + " 
           << beta << "*x[" << j << "] = 0...";
         cout.flush();
       }
       auto rid = p.AddResidualBlock(new LinearCombination(alpha,beta), NULL, {x+MULT*i, x+MULT*j});
-      Solver::Summary summary;
-      Solve(opts,&p,&summary);
-      tries++; 
-      if (summary.final_cost <= std::max(better_frac*icost,solved_fine)) {
-        if (verbose) cout << " success " << summary.iterations.size() - 1
-            << " iterations " << summary.final_cost << endl;
+      // evaluation seems not to work before resolving, so use diff directly to detect free relations
+      if (diff < 1e-13) {
+        if (verbose) cout << " success free " << diff << endl;
         unio(i,j);
-        l2_reg_discrete(p,x,opts,eopts);
-        logsol(x,"out_partial_sparse.txt");
         goto found;
+      } else {
+        Solver::Summary summary;
+        Solve(opts,&p,&summary);
+        tries++; 
+        if (summary.final_cost <= std::max(better_frac*icost,solved_fine)) {
+          if (verbose) cout << " success " << summary.iterations.size() - 1
+              << " iterations " << summary.final_cost << endl;
+          unio(i,j);
+          l2_reg_discrete(p,x,opts,eopts);
+          logsol(x,"out_partial_sparse.txt");
+          goto found;
+        }
+        if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
+          << summary.final_cost << endl;
+        p.RemoveResidualBlock(rid);
+        copy(sav.begin(),sav.end(),x);
+        if (tries >= trylimit) break;
       }
-      if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
-        << summary.final_cost << endl;
-      p.RemoveResidualBlock(rid);
-      copy(sav.begin(),sav.end(),x);
-      if (tries >= trylimit) break;
     }
     break;
     found:;
