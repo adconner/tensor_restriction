@@ -132,14 +132,17 @@ int main(int argc, char** argv) {
   options.minimizer_type = TRUST_REGION;
   options.max_num_iterations = iterations_fine;
   Solver::Summary summary;
-  if (record_iterations) {
-    options.update_state_every_iteration = true;
-    auto record = make_unique<RecordCallback>(x,cerr);
-    options.callbacks.push_back(record.get());
-    Solve(options, &problem, &summary);
-    options.callbacks.pop_back();
-  } else {
-    Solve(options, &problem, &summary);
+  double cost; problem.Evaluate(eopts,&cost,0,0,0);
+  if (cost > solved_fine) {
+    if (record_iterations) {
+      options.update_state_every_iteration = true;
+      auto record = make_unique<RecordCallback>(x,cerr);
+      options.callbacks.push_back(record.get());
+      Solve(options, &problem, &summary);
+      options.callbacks.pop_back();
+    } else {
+      Solve(options, &problem, &summary);
+    }
   }
   /* cout << summary.FullReport() << endl; */
 
