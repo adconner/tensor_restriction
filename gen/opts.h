@@ -3,7 +3,7 @@
 
 #include "prob.h"
 
-const bool verbose = true;
+const int verbose = 1;
 const bool tostdout = false;
 const bool attemptsparse = true; 
 const bool l2_reg_always = false;
