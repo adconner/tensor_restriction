@@ -65,8 +65,8 @@ int main(int argc, char** argv) {
 
   fill_initial(x,argc,argv,problem);
 
-  /* int maxi = 44*25; */
-  /* for (int i=MULT*maxi; i < MULT*N; ++i) { */
+  /* int maxi = 41*25; */
+  /* for (int i=maxi; i < N; ++i) { */
   /*   for (int j=0; j<MULT; ++j) { */
   /*     x[MULT*i+j] = 0; */
   /*   } */
