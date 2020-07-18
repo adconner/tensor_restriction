@@ -3,7 +3,7 @@
 
 #include "prob.h"
 
-const int verbose = 1;
+const int verbose = 2;
 const bool tostdout = false;
 const bool attemptsparse = true; 
 const bool l2_reg_always = false;
@@ -28,9 +28,9 @@ const double solved_fine = 1e-25;
 const double attempt_sparse_thresh = 1e-12;
 
 // parameters for descretization
-const int l2_reg_steps_discrete = 1;
-const double l2_reg_decay_discrete = 0.316227766016838; // sqrt(0.1)
-const double alphastart_discrete = 0.0005;
+const int l2_reg_steps_refine = 1;
+const double l2_reg_decay_refine = 0.316227766016838; // sqrt(0.1)
+const double alphastart_refine = 0.0005;
 
 const int iterations_discrete = 60;
 const double ftol_discrete = 0.1; // ~ solved_fine ^ (1/iterations_discrete)

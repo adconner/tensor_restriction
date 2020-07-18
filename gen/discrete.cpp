@@ -1,48 +1,5 @@
 #include "discrete.h"
-
-void l2_reg_discrete(Problem &p, double *x, const Solver::Options & opts, const Problem::EvaluateOptions &eopts) {
-  if (l2_reg_steps_discrete == 0) return;
-  Solver::Options myopts(opts);
-  myopts.max_num_iterations = iterations_rough;
-  myopts.function_tolerance = ftol_rough;
-  /* print_lines=true; */
-
-  double start_alpha = alphastart_discrete;
-  while (true) {
-    vector<double> sav(x,x+N*MULT);
-    sqalpha = std::sqrt(start_alpha); 
-    for (int i=l2_reg_steps_discrete; i>0; --i, sqalpha *= std::sqrt(l2_reg_decay_discrete)) {
-      if (verbose >= 2) {
-        cout << "l2 regularization coefficient " << (sqalpha * sqalpha) << ".. "; cout.flush();
-      }
-      Solver::Summary summary;
-      Solve(myopts, &p, &summary);
-      if (verbose >= 2) {
-        cout << summary.initial_cost << " -> " << summary.final_cost << endl; cout.flush();
-      }
-    }
-
-    sqalpha = 0.0; 
-    if (verbose >= 2) {
-      cout << "getting back to solution.. "; cout.flush();
-    }
-    myopts.function_tolerance = ftol_rough*0.1;
-    Solver::Summary summary;
-    Solve(myopts, &p, &summary);
-    if (verbose >= 2) {
-      cout << summary.initial_cost << " -> " << summary.final_cost << endl; cout.flush();
-    }
-
-    print_lines = false;
-    if (summary.final_cost > solved_fine) {
-      copy(sav.begin(),sav.end(),x);
-      if (verbose >= 2) cout << "l2 reg failed, retrying" << endl;
-    } else{
-      break;
-    }
-    start_alpha *= l2_reg_decay_discrete;
-  }
-}
+#include "l2reg.h"
 
 void greedy_discrete(Problem &p, double *x, 
     const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
@@ -55,6 +12,10 @@ void greedy_discrete(Problem &p, double *x,
       targets = { {1.0, 0.0}, {-1.0, 0.0} };
     } else if (da == DA_E3) {
       targets = { {1.0,0.0}, {-0.5, 0.866025403784439}, {-0.5, -0.866025403784439} };
+      for (int i=0; i<3; ++i) {
+        targets.push_back(-targets[i]);
+      }
+      /* targets.push_back(cx(0.0)); */
     }
     double smallest = 1e7;
     cx target = 0.0;
@@ -123,7 +84,7 @@ void greedy_discrete(Problem &p, double *x,
             if (verbose) cout << " success " << summary.iterations.size() - 1
                 << " iterations " << summary.final_cost << endl;
             successes++;
-            l2_reg_discrete(p,x,opts,eopts);
+            l2_reg_refine(p,x,opts);
             logsol(x,"out_partial_sparse.txt");
             goto found;
           }
@@ -231,7 +192,7 @@ void greedy_discrete_pairs(Problem &p, double *x,
               << " iterations " << summary.final_cost << endl;
           unio(i,j);
           successes++;
-          l2_reg_discrete(p,x,opts,eopts);
+          l2_reg_refine(p,x,opts);
           logsol(x,"out_partial_sparse.txt");
           goto found;
         }

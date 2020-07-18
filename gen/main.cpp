@@ -11,6 +11,7 @@
 #include "util.h"
 #include "discrete.h"
 #include "initial.h"
+#include "l2reg.h"
 
 using namespace ceres;
 using namespace std;
@@ -65,8 +66,8 @@ int main(int argc, char** argv) {
 
   fill_initial(x,argc,argv,problem);
 
-  /* int maxi = 41*25; */
-  /* for (int i=maxi; i < N; ++i) { */
+  /* int maxi = 42*25; */
+  /* for (int i=MULT*maxi; i < MULT*N; ++i) { */
   /*   for (int j=0; j<MULT; ++j) { */
   /*     x[MULT*i+j] = 0; */
   /*   } */
@@ -83,44 +84,13 @@ int main(int argc, char** argv) {
   print_lines = verbose;
 
   if (l2_reg_always || (l2_reg_random_start && argc == 1)) {
-    vector<ResidualBlockId> rids;
-    for (int i=0; i<N; ++i) {
-      rids.push_back(problem.AddResidualBlock(new L2Regularization, NULL, &x[MULT*i]));
-    }
-    options.minimizer_type = TRUST_REGION;
-    options.max_num_iterations = iterations_rough;
-    options.function_tolerance = ftol_rough;
-    sqalpha = std::sqrt(alphastart);
-    for (int i=l2_reg_steps; i>0; --i, sqalpha *= std::sqrt(l2_reg_decay)) {
-      Solver::Summary summary;
-      if (verbose) {
-        cout << "l2 regularization coefficient " << (sqalpha * sqalpha) << endl;
-        cout.flush();
-      }
-      Solve(options, &problem, &summary);
-      /* if (verbose) cout << summary.FullReport() << "\n"; */
-    }
-    for (auto rid : rids) {
-      problem.RemoveResidualBlock(rid);
-    }
-    if (verbose) cout << "rough solving..." << endl;
-    Solver::Summary summary;
-    Solve(options, &problem, &summary);
-    options.function_tolerance = ftol;
-
-    /* vector<double> rs; problem.Evaluate(eopts,0,&rs,0,0); */
-    /* int bad = count_if(rs.begin(),rs.end(), */
-    /*       [](double r){return std::abs(r) > abort_worse;}); */
-    /* if (0 < bad && bad <= 2) { */
-    /*   logsol(x,"out_almost.txt"); */
-    /*   return 0; */
-    /* } */
+    l2_reg_search(problem, x, options);
 
     if (log_rough) logsol(x,"out_rough.txt");
     double cost; problem.Evaluate(eopts,&cost,0,0,0);
     if (cost > abort_worse) {
-      if (verbose) cout << summary.FullReport() << endl << 
-        "cost " << cost << "rough solution worse than abort_worse. Aborting" << endl;
+      if (verbose) cout << "cost " << cost << 
+        "rough solution worse than abort_worse. Aborting" << endl;
       return 2;
     } else if (verbose) {
       cout << "rough solution better than abort_worse. Fine tuning solution..." << endl;
@@ -156,21 +126,17 @@ int main(int argc, char** argv) {
     }
     if (verbose) cout << "solution better than attempt_sparse_thresh, sparsifying..." << endl;
 
-    sqalpha = 0.0;
-    for (int i=0; i<N; ++i) {
-      problem.AddResidualBlock(new L2Regularization, NULL, &x[MULT*i]);
-    }
-
     options.minimizer_type = TRUST_REGION;
     options.max_num_iterations = iterations_discrete;
     options.function_tolerance = ftol_discrete;
     print_lines = false;
+    options.linear_solver_type = DENSE_NORMAL_CHOLESKY;
 
     int successes = 0;
     greedy_discrete(problem,x,options,eopts,successes,DA_ZERO,N);
     /* greedy_discrete_pairs(problem,x,options,eopts,N); */
-    greedy_discrete(problem,x,options,eopts,successes,DA_E3,N);
-    /* greedy_discrete(problem,x,options,eopts,successes,DA_PM_ONE,N); */
+    greedy_discrete(problem,x,options,eopts,successes,DA_PM_ONE,N);
+    /* greedy_discrete(problem,x,options,eopts,successes,DA_E3,N); */
 
     /* for (int refine=1; refine<=1; ++refine) { */
     /*   options.max_num_iterations *= 2; */

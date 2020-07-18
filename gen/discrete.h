@@ -7,8 +7,6 @@ enum DiscreteAttempt {
   DA_PM_ONE,
   DA_E3
 };
-void l2_reg_discrete(Problem &p, double *x, const Solver::Options & opts, 
-    const Problem::EvaluateOptions &eopts);
 void greedy_discrete(Problem &p, double *x, 
     const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
     int &successes, DiscreteAttempt da = DA_ZERO, int trylimit = 10);

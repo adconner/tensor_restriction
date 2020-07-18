@@ -48,24 +48,6 @@ CallbackReturnType PrintCallback::operator()(const IterationSummary& summary) {
   return SOLVER_CONTINUE;
 }
 
-bool L2Regularization::Evaluate(const double* const* x,
-                    double* residuals,
-                    double** jacobians) const {
-  residuals[0] = sqalpha * x[0][0];
-  if (MULT == 2) residuals[1] = sqalpha * x[0][1];
-  if (jacobians) {
-    if (jacobians[0]) {
-      jacobians[0][0] = sqalpha;
-      if (MULT == 2) {
-        jacobians[0][1] = 0;
-        jacobians[0][2] = 0;
-        jacobians[0][3] = sqalpha;
-      }
-    }
-  }
-  return true;
-}
-
 Equal::Equal(double _a, cx _x0) : a(_a), x0(_x0) {}
 bool Equal::Evaluate(const double* const* x,
                     double* residuals,

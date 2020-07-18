@@ -35,13 +35,6 @@ class PrintCallback : public IterationCallback {
     double ma_last;
 };
 
-class L2Regularization : public SizedCostFunction<MULT,MULT> {
-  public:
-    bool Evaluate(const double* const* x,
-                        double* residuals,
-                        double** jacobians) const; 
-};
-
 class Equal : public SizedCostFunction<MULT,MULT> {
   public:
     Equal(double _a, cx _x0);
