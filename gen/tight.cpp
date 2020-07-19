@@ -162,53 +162,16 @@ int main(int argc, char** argv) {
   cout.precision(numeric_limits<double>::digits10);
 
   double x[MULT*N];
-
   Problem problem;
-
-  set<int> solved; // set inital solved and add equations
-#ifdef TIGHT
-  for (int i=0; i<M; ++i) {
-    bool nz = false;
-    for (int j=0; j<TDIM; ++j) {
-      if (tight[i][j] != 0) {
-        nz = true;
-        break;
-      }
-    }
-    if (!nz) {
-      solved.insert(i);
-    }
-  }
-#else
-  for (int i=0; i<M; ++i) solved.insert(i); // this case irrelevant, but do something
-#endif
-
-  for (auto i : solved) {
-    AddToProblem(problem,x,i);
-  }
-
+  set<int> solved;
   fill_initial(x,argc,argv,problem);
-
-  /* int maxi = 42*25; */
-  /* for (int i=MULT*maxi; i < MULT*N; ++i) { */
-  /*   for (int j=0; j<MULT; ++j) { */
-  /*     x[MULT*i+j] = 0; */
-  /*   } */
-  /*   problem.SetParameterBlockConstant(x+MULT*i); */
-  /* } */
 
   Solver::Options options;
   solver_opts(options);
   options.callbacks.push_back(new SolvedCallback);
-  if (verbose) {
-    options.update_state_every_iteration = true;
-    options.callbacks.push_back(new PrintCallback(x));
-  }
-  print_lines = verbose;
-  l2_reg_search(problem, x, options);
-  print_lines = false;
 
   ClpSimplex model; 
+  model.setLogLevel(0);
   model.resize(0,TDIM);
   for (int i=0; i<TDIM; ++i) {
     model.setColumnLower(i,-COIN_DBL_MAX);
