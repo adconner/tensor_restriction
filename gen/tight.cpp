@@ -117,7 +117,7 @@ bool for_each_solvable(const set<int> &solved, int start, function<bool(int)> f)
           ts.push_back(tight[i][j]);
         }
       }
-      model.addRow(ixs.size(),ixs.data(),ts.data(),COIN_DBL_MIN,0.0);
+      model.addRow(ixs.size(),ixs.data(),ts.data(),-COIN_DBL_MAX,0.0);
 
       model.primal();
       if (model.isProvenOptimal() && f(i)) {
