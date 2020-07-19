@@ -2,19 +2,22 @@
 CFLAGS=-O3 -ffast-math -march=native
 # CFLAGS=-g
 CXXFLAGS=-std=c++14 -I/usr/include/eigen3 $(shell pkg-config --cflags clp) $(CFLAGS)
-LDFLAGS=$(shell pkg-config --lflags clp) -lceres -lcxsparse -lcholmod -lumfpack -lamd -lcamd -lcolamd -lccolamd -lbtf -lsuitesparseconfig -lmetis -llapack -lopenblas -lglog -lomp -pthread  $(CFLAGS)
+LDFLAGS=$(shell pkg-config --libs clp) -lceres -lcxsparse -lcholmod -lumfpack -lamd -lcamd -lcolamd -lccolamd -lbtf -lsuitesparseconfig -lmetis -llapack -lopenblas -lglog -lomp -pthread  $(CFLAGS)
 CC=clang
 CXX=clang++
 
 # .SUFFIXES:
 
-ofiles=main.o util.o discrete.o prob.o initial.o l2reg.o
+ofiles=util.o discrete.o prob.o initial.o l2reg.o
 ofiles+=$(sort $(patsubst %.c,%.o,$(wildcard ccode/prob*.c)))
-targets=main
+targets=main tight
 
 all: $(targets)
 
-main: $(ofiles)
+main: main.o $(ofiles)
+	$(CXX) $^ -o $@ $(LDFLAGS)
+
+tight: tight.o $(ofiles)
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
 main.o: main.cpp prob.h util.h opts.h discrete.h initial.h
