@@ -152,7 +152,6 @@ bool dfs(Problem &problem, double *x, const Solver::Options &options,
     double cost; problem.Evaluate(Problem::EvaluateOptions(),&cost,0,0,0);
     if (cost > solved_fine) { // solve fail
       copy(sav.begin(),sav.end(),x);
-      // remove eq
       problem.RemoveResidualBlock(rid);
       return false;
     }
@@ -224,6 +223,7 @@ int main(int argc, char** argv) {
   if (dfs(problem,x,options,solved,0)) {
     cout << endl << endl << "SOLUTION FOUND" << endl << endl << endl;
   } else {
+    cout << endl << endl << "SOLUTION NOT FOUND" << endl << endl << endl;
     return 1;
   }
 
