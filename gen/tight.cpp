@@ -39,133 +39,92 @@ void solver_opts(Solver::Options &options) {
   options.gradient_tolerance = gtol;
 }
 
-bool done(const set<int> &solved) {
-  ClpSimplex model; 
-  model.resize(0,TDIM);
-  for (int i=0; i<TDIM; ++i) {
-    model.setColumnLower(i,-COIN_DBL_MAX);
-    model.setColumnUpper(i,COIN_DBL_MAX);
-  }
-  CoinBuild build;
-  vector<int> ixs;
-  vector<double> ts;
-  for (int i=0; i<M; ++i) {
-    if (!solved.count(i)) {
-      ixs.clear(); ts.clear();
-      for (int j=0; j<TDIM; ++j) {
-        if (tight[i][j] != 0) {
-          ixs.push_back(j);
-          ts.push_back(tight[i][j]);
-        }
-      }
-      build.addRow(ixs.size(),ixs.data(),ts.data(),1.0,COIN_DBL_MAX);
-    }
-  }
-  model.addRows(build);
-  model.primal();
-  return !model.isProvenPrimalInfeasible();
-}
-
-bool for_each_solvable(const set<int> &solved, int start, function<bool(int)> f) {
-  // want nonzero vector with dot product with solved to be nonnegative
-  // nonzero can be asserted by saying sums of dot products is positive
-  ClpSimplex model; 
-  model.resize(0,TDIM);
-  for (int i=0; i<TDIM; ++i) {
-    model.setColumnLower(i,-COIN_DBL_MAX);
-    model.setColumnUpper(i,COIN_DBL_MAX);
-  }
-  /* CoinBuild build; */
-  vector<int> ixs;
-  vector<double> ts;
-  for (int i : solved) {
-    ixs.clear(); ts.clear();
-    for (int j=0; j<TDIM; ++j) {
-      if (tight[i][j] != 0) {
-        ixs.push_back(j);
-        ts.push_back(tight[i][j]);
-      }
-    }
-    /* build.addRow(ixs.size(),ixs.data(),ts.data(),-COIN_DBL_MAX,0.0); */
-    model.addRow(ixs.size(),ixs.data(),ts.data(),-COIN_DBL_MAX,0.0);
-  }
-  for (int i=0; i<start; ++i) {
-    if (!solved.count(i)) {
-      ixs.clear(); ts.clear();
-      for (int j=0; j<TDIM; ++j) {
-        if (tight[i][j] != 0) {
-          ixs.push_back(j);
-          ts.push_back(tight[i][j]);
-        }
-      }
-      /* build.addRow(ixs.size(),ixs.data(),ts.data(),1.0,COIN_DBL_MAX); */
-      model.addRow(ixs.size(),ixs.data(),ts.data(),1.0,COIN_DBL_MAX);
-    }
-  }
-  /* model.addRows(build); */
-
-  cout << start << endl;
-  model.primal();
-  assert(model.isProvenOptimal());
-
-  for (int i=start; i<M; ++i) {
-    if (!solved.count(i)) {
-      ixs.clear(); ts.clear();
-      for (int j=0; j<TDIM; ++j) {
-        if (tight[i][j] != 0) {
-          ixs.push_back(j);
-          ts.push_back(tight[i][j]);
-        }
-      }
-      model.addRow(ixs.size(),ixs.data(),ts.data(),-COIN_DBL_MAX,0.0);
-
-      model.primal();
-      if (model.isProvenOptimal() && f(i)) {
-        return true;
-      }
-
-      model.setRowLower(model.getNumRows()-1,1.0);
-      model.setRowUpper(model.getNumRows()-1,COIN_DBL_MAX);
-      model.primal();
-      if (model.isProvenPrimalInfeasible()) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-
-
 bool dfs(Problem &problem, double *x, const Solver::Options &options,
-    set<int> &solved, int start) {
-  return for_each_solvable(solved, start, [&](int i) {
-    if (dfs(problem,x,options,solved,i+1)) {
+    set<int> &solved, ClpSimplex &model, int i) {
+  while (i < M && solved.count(i)) {
+    i++;
+  }
+  if (i == M) {
+    return true;
+  }
+  cout << "tight: solved "; 
+  copy(solved.begin(),solved.end(),ostream_iterator<double>(cout," "));
+  cout << " i: " << i;
+  cout << endl;
+
+  vector<int> ixs;
+  vector<double> ts;
+  for (int j=0; j<TDIM; ++j) {
+    if (tight[i][j] != 0) {
+      ixs.push_back(j);
+      ts.push_back(tight[i][j]);
+    }
+  }
+  model.addRow(ixs.size(),ixs.data(),ts.data(),1.0,COIN_DBL_MAX);
+  model.primal();
+  bool fst = model.isProvenOptimal();
+  if (model.isProvenOptimal()) {
+    if (dfs(problem,x,options,solved,model,i+1)) {
       return true;
     }
+  }
 
+  model.setRowLower(model.getNumRows()-1,-COIN_DBL_MAX);
+  model.setRowUpper(model.getNumRows()-1,0.0);
+  model.primal();
+  bool snd = model.isProvenOptimal();
+
+  cout << "tight: return solved "; 
+  copy(solved.begin(),solved.end(),ostream_iterator<double>(cout," "));
+  cout << " i: " << i;
+  cout << " fst: " << fst;
+  cout << " snd: " << snd;
+  cout << endl;
+
+  assert(fst || snd);
+  if (model.isProvenOptimal()) {
     vector<double> sav(x,x+N*MULT);
     auto rid = AddToProblem(problem,x,i);
-    // TODO set weight small
+    /* auto eq = (Eq *)problem.GetCostFunctionForResidualBlock(rid); */
+    /* eq->alpha = 0.05; */
     Solver::Summary summary;
-    Solve(options, &problem, &summary);
+    print_lines = true;
+    /* Solve(options, &problem, &summary); */
+    char *a = "";
+    fill_initial(x,1,&a,problem);
+    l2_reg_search(problem, x, options);
     double cost; problem.Evaluate(Problem::EvaluateOptions(),&cost,0,0,0);
     if (cost > solved_fine) { // solve fail
+      cout << "tight: solve fail" << endl;
       copy(sav.begin(),sav.end(),x);
       problem.RemoveResidualBlock(rid);
+      int row = model.getNumRows() - 1;
+      model.deleteRows(1,&row);
       return false;
     }
+    /* eq->alpha = 1.0; */
+    cout << "tight: solve success" << endl;
     l2_reg_refine(problem,x,options);
 
     solved.insert(i);
-    if (dfs(problem,x,options,solved,i+1)) {
+    if (dfs(problem,x,options,solved,model,i+1)) {
       return true;
     }
     solved.erase(i);
+
+    cout << "tight: return2 solved "; 
+    copy(solved.begin(),solved.end(),ostream_iterator<double>(cout," "));
+    cout << " i: " << i;
+    cout << " fst: " << fst;
+    cout << " snd: " << snd;
+    cout << endl;
+
     copy(sav.begin(),sav.end(),x); // this is unnecessary but should be smaller values
     problem.RemoveResidualBlock(rid);
-    return false;
-  });
+  }
+  int row = model.getNumRows() - 1;
+  model.deleteRows(1,&row);
+  return false;
 }
 
 
@@ -220,8 +179,17 @@ int main(int argc, char** argv) {
   l2_reg_search(problem, x, options);
   print_lines = false;
 
-  if (dfs(problem,x,options,solved,0)) {
-    cout << endl << endl << "SOLUTION FOUND" << endl << endl << endl;
+  ClpSimplex model; 
+  model.resize(0,TDIM);
+  for (int i=0; i<TDIM; ++i) {
+    model.setColumnLower(i,-COIN_DBL_MAX);
+    model.setColumnUpper(i,COIN_DBL_MAX);
+  }
+  if (dfs(problem,x,options,solved,model,0)) {
+    cout << endl << endl << "SOLUTION FOUND" << endl;
+    cout << "solved: ";
+    copy(solved.begin(),solved.end(),ostream_iterator<int>(cout," "));
+    cout << endl << endl << endl;
   } else {
     cout << endl << endl << "SOLUTION NOT FOUND" << endl << endl << endl;
     return 1;
