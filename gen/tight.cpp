@@ -43,7 +43,7 @@ bool done(const set<int> &solved) {
   ClpSimplex model; 
   model.resize(0,TDIM);
   for (int i=0; i<TDIM; ++i) {
-    model.setColumnLower(i,COIN_DBL_MIN);
+    model.setColumnLower(i,-COIN_DBL_MAX);
     model.setColumnUpper(i,COIN_DBL_MAX);
   }
   CoinBuild build;
@@ -72,10 +72,10 @@ bool for_each_solvable(const set<int> &solved, int start, function<bool(int)> f)
   ClpSimplex model; 
   model.resize(0,TDIM);
   for (int i=0; i<TDIM; ++i) {
-    model.setColumnLower(i,COIN_DBL_MIN);
+    model.setColumnLower(i,-COIN_DBL_MAX);
     model.setColumnUpper(i,COIN_DBL_MAX);
   }
-  CoinBuild build;
+  /* CoinBuild build; */
   vector<int> ixs;
   vector<double> ts;
   for (int i : solved) {
@@ -86,7 +86,8 @@ bool for_each_solvable(const set<int> &solved, int start, function<bool(int)> f)
         ts.push_back(tight[i][j]);
       }
     }
-    build.addRow(ixs.size(),ixs.data(),ts.data(),COIN_DBL_MIN,0.0);
+    /* build.addRow(ixs.size(),ixs.data(),ts.data(),-COIN_DBL_MAX,0.0); */
+    model.addRow(ixs.size(),ixs.data(),ts.data(),-COIN_DBL_MAX,0.0);
   }
   for (int i=0; i<start; ++i) {
     if (!solved.count(i)) {
@@ -97,11 +98,13 @@ bool for_each_solvable(const set<int> &solved, int start, function<bool(int)> f)
           ts.push_back(tight[i][j]);
         }
       }
-      build.addRow(ixs.size(),ixs.data(),ts.data(),1.0,COIN_DBL_MAX);
+      /* build.addRow(ixs.size(),ixs.data(),ts.data(),1.0,COIN_DBL_MAX); */
+      model.addRow(ixs.size(),ixs.data(),ts.data(),1.0,COIN_DBL_MAX);
     }
   }
-  model.addRows(build);
+  /* model.addRows(build); */
 
+  cout << start << endl;
   model.primal();
   assert(model.isProvenOptimal());
 
