@@ -109,8 +109,9 @@ bool solve_and_continue(Problem &problem, double *x, const Solver::Options &opti
       if (dfs(problem,x,options,solved,model,i+1)) {
         return true;
       }
+    } else {
+      cout << "tight: solve fail" << endl;
     }
-    cout << "tight: solve fail" << endl;
     copy(sav.begin(),sav.end(),x);
 
     for (auto rid : eqs) {
@@ -182,6 +183,7 @@ int main(int argc, char** argv) {
     cout << "solved: ";
     copy(solved.begin(),solved.end(),ostream_iterator<int>(cout," "));
     cout << endl << endl << endl;
+    logsol(x,"out_dense.txt");
   } else {
     cout << endl << endl << "SOLUTION NOT FOUND" << endl << endl << endl;
     return 1;
