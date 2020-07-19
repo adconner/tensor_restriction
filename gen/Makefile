@@ -21,6 +21,7 @@ tight: tight.o $(ofiles)
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
 main.o: main.cpp prob.h util.h opts.h discrete.h initial.h
+tight.o: tight.cpp prob.h util.h opts.h discrete.h initial.h
 util.o: util.cpp prob.h util.h opts.h
 discrete.o: discrete.h util.h opts.h prob.h
 initial.o: initial.h opts.h prob.h
