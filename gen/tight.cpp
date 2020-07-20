@@ -72,6 +72,7 @@ bool solve_and_continue(Problem &problem, double *x, const Solver::Options &opti
     solved.insert(i);
     eqs.push_back(AddToProblem(problem,x,i));
   }
+  assert(solved.size() == problem.NumResiduals());
 
   for (int j=i+1; j<M; ++j) {
     if (!solved.count(j)) {
@@ -88,7 +89,7 @@ bool solve_and_continue(Problem &problem, double *x, const Solver::Options &opti
         // cannot be positive, must try to solve
         solvedadded.push_back(j);
         solved.insert(j);
-        eqs.push_back(AddToProblem(problem,x,i));
+        eqs.push_back(AddToProblem(problem,x,j));
       }
       // no matter what, can delete row, either it is superfulous or not needed
       int row = model.getNumRows() - 1;
@@ -98,10 +99,14 @@ bool solve_and_continue(Problem &problem, double *x, const Solver::Options &opti
 
   if (eqs.size()) {
     vector<double> sav(x,x+N*MULT);
-    Solver::Summary summary;
+
     char *a = "";
     fill_initial(x,1,&a,problem);
+
     l2_reg_search(problem, x, options);
+    /* Solver::Summary summary; */
+    /* Solve(options, &problem, &summary); */
+
     double cost; problem.Evaluate(Problem::EvaluateOptions(),&cost,0,0,0);
     if (cost < solved_fine) { // solve success
       cout << "tight: solve success" << endl;
@@ -167,6 +172,12 @@ int main(int argc, char** argv) {
   popts.enable_fast_removal = true;
   Problem problem(popts);
   set<int> solved;
+  /* for (int i=0; i<M; ++i) { */
+  /*   if (all_of(tight[i],tight[i]+TDIM,[](int e){return e==0;})) { */
+  /*     solved.insert(i); */
+  /*     AddToProblem(problem,x,i); */
+  /*   } */
+  /* } */
   fill_initial(x,argc,argv,problem);
 
   Solver::Options options;
@@ -177,6 +188,10 @@ int main(int argc, char** argv) {
     options.callbacks.push_back(new PrintCallback(x));
   }
   print_lines = verbose;
+
+  /* l2_reg_search(problem, x, options); */
+  /* Solver::Summary summary; */
+  /* Solve(options, &problem, &summary); */
 
   ClpSimplex model; 
   model.setLogLevel(0);
