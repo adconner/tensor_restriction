@@ -163,13 +163,20 @@ int main(int argc, char** argv) {
   cout.precision(numeric_limits<double>::digits10);
 
   double x[MULT*N];
-  Problem problem;
+  Problem::Options popts;
+  popts.enable_fast_removal = true;
+  Problem problem(popts);
   set<int> solved;
   fill_initial(x,argc,argv,problem);
 
   Solver::Options options;
   solver_opts(options);
   options.callbacks.push_back(new SolvedCallback);
+  if (verbose) {
+    options.update_state_every_iteration = true;
+    options.callbacks.push_back(new PrintCallback(x));
+  }
+  print_lines = verbose;
 
   ClpSimplex model; 
   model.setLogLevel(0);
