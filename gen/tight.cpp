@@ -172,12 +172,6 @@ int main(int argc, char** argv) {
   popts.enable_fast_removal = true;
   Problem problem(popts);
   set<int> solved;
-  /* for (int i=0; i<M; ++i) { */
-  /*   if (all_of(tight[i],tight[i]+TDIM,[](int e){return e==0;})) { */
-  /*     solved.insert(i); */
-  /*     AddToProblem(problem,x,i); */
-  /*   } */
-  /* } */
   fill_initial(x,argc,argv,problem);
 
   Solver::Options options;
@@ -188,10 +182,6 @@ int main(int argc, char** argv) {
     options.callbacks.push_back(new PrintCallback(x));
   }
   print_lines = verbose;
-
-  /* l2_reg_search(problem, x, options); */
-  /* Solver::Summary summary; */
-  /* Solve(options, &problem, &summary); */
 
   ClpSimplex model; 
   model.setLogLevel(0);
