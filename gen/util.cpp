@@ -13,7 +13,7 @@ bool print_lines;
 void logsol(double *x, string fname) {
   if (tostdout) {
     cout.precision(numeric_limits<double>::max_digits10);
-    cout << fname << " ";
+    cout << "OUTPUT " << fname << " ";
     copy(x,x+MULT*N,ostream_iterator<double>(cout," "));
     cout << endl;
   } else {
