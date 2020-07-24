@@ -141,7 +141,8 @@ int main(int argc, char** argv) {
     /* greedy_discrete(problem,x,options,eopts,successes,DA_PM_ONE,N); */
 
     l2_reg_refine(problem,x,options);
-    greedy_discrete_lines(problem,x,options,eopts,N-successes);
+    greedy_discrete_lines(problem,x,options,N-successes,6);
+    greedy_discrete_lines(problem,x,options,N-successes,12);
     greedy_discrete(problem,x,options,eopts,successes,DA_E3,N-successes);
 
     /* for (int refine=1; refine<=1; ++refine) { */

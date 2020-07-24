@@ -231,11 +231,14 @@ class ContainedOnLine : public SizedCostFunction<1,MULT> {
 };
 
 void greedy_discrete_lines(Problem &p, double *x, 
-    const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
-    int trylimit) {
+    const Solver::Options & opts, int ei, int trylimit) {
   assert(MULT == 2);
   auto get_target = [&](cx cur) {
-    vector<cx> targets { {1.0,0.0}, {-0.5, 0.866025403784439}, {-0.5, -0.866025403784439} };
+    vector<cx> targets; //{ {1.0,0.0}, {-0.5, 0.866025403784439}, {-0.5, -0.866025403784439} };
+    double pi = std::atan(1)*4;
+    for (int i=0; i < ei%2 ? ei : ei/2 ; ++i) {
+      targets.push_back(cx(std::cos(2*pi/ei),std::sin(2*pi/ei)));
+    }
     double dist = 1e15;
     cx target = cx(0);
     for (cx a: targets) {
