@@ -80,6 +80,7 @@ int main(int argc, char** argv) {
   Solver::Options options;
   solver_opts(options);
   options.callbacks.push_back(new SolvedCallback);
+  options.callbacks.push_back(new AvoidBorderRankCallback(x));
   if (verbose) {
     options.update_state_every_iteration = true;
     options.callbacks.push_back(new PrintCallback(x));

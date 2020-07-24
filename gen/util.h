@@ -3,6 +3,7 @@
 #include <ceres/ceres.h>
 #include <string>
 #include <complex>
+#include <deque>
 #include "opts.h"
 
 using namespace std;
@@ -16,6 +17,15 @@ void logsol(double *x, string fname);
 class SolvedCallback : public IterationCallback {
   public:
     CallbackReturnType operator()(const IterationSummary& summary);
+};
+
+class AvoidBorderRankCallback : public IterationCallback {
+  public:
+    AvoidBorderRankCallback(double *_x);
+    CallbackReturnType operator()(const IterationSummary& summary);
+    deque<double> max_rats;
+    double *x;
+    double ma_last;
 };
 
 class RecordCallback : public IterationCallback {

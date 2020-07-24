@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iterator>
 #include <random>
 #include <fstream>
@@ -24,6 +25,40 @@ void logsol(double *x, string fname) {
 
 CallbackReturnType SolvedCallback::operator()(const IterationSummary& summary) {
   return summary.cost < 1e-29 ? SOLVER_TERMINATE_SUCCESSFULLY : SOLVER_CONTINUE;
+}
+
+AvoidBorderRankCallback::AvoidBorderRankCallback(double *_x) : x(_x), ma_last(1.0) {}
+CallbackReturnType AvoidBorderRankCallback::operator()(const IterationSummary& summary) {
+  const int hist = 20;
+  const double maxrat_lower = 1e-2;
+  const double maxrat_rel_var_upper = 1e-1;
+
+  double ma = accumulate(x,x+MULT*N,0.0,[](double a, double b) {return max(std::abs(a),std::abs(b));} ); 
+  double maxrat = ((ma - ma_last) / ma) / (summary.cost_change / summary.cost);
+  ma_last = ma;
+
+  max_rats.push_front(maxrat);
+  if (max_rats.size() > hist) {
+    max_rats.pop_back();
+  }
+  if (summary.iteration > hist && all_of(max_rats.begin(),max_rats.end(),[](double mr){return isnormal(mr);})) {
+
+    double mravg = 0;
+    for (double mr: max_rats) {
+      mravg += mr;
+    }
+    mravg /= max_rats.size();
+    double mrvar = 0;
+    for (double mr:max_rats) {
+      mrvar += (mr -mravg) * (mr-mravg);
+    }
+    mrvar = std::sqrt(mrvar);
+    if (mravg >= maxrat_lower && mrvar/mravg <= maxrat_rel_var_upper) {
+      cout << "USER CANCEL " << mravg << " " << mrvar/mravg << endl;
+      return SOLVER_ABORT;
+    }
+  }
+  return SOLVER_CONTINUE;
 }
 
 RecordCallback::RecordCallback(double *_x, ostream &_out) : x(_x), out(_out) {}
