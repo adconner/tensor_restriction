@@ -31,7 +31,7 @@ AvoidBorderRankCallback::AvoidBorderRankCallback(double *_x) : x(_x), ma_last(1.
 CallbackReturnType AvoidBorderRankCallback::operator()(const IterationSummary& summary) {
   const int hist = 20;
   const double maxrat_lower = 1e-2;
-  const double maxrat_rel_var_upper = 1e-1;
+  const double maxrat_rel_var_upper = 0.06;
 
   double ma = accumulate(x,x+MULT*N,0.0,[](double a, double b) {return max(std::abs(a),std::abs(b));} ); 
   double maxrat = ((ma - ma_last) / ma) / (summary.cost_change / summary.cost);
@@ -52,7 +52,7 @@ CallbackReturnType AvoidBorderRankCallback::operator()(const IterationSummary& s
     for (double mr:max_rats) {
       mrvar += (mr -mravg) * (mr-mravg);
     }
-    mrvar = std::sqrt(mrvar);
+    mrvar = std::sqrt(mrvar / max_rats.size());
     if (mravg >= maxrat_lower && mrvar/mravg <= maxrat_rel_var_upper) {
       cout << "USER CANCEL " << mravg << " " << mrvar/mravg << endl;
       return SOLVER_ABORT;
