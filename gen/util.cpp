@@ -24,13 +24,13 @@ void logsol(double *x, string fname) {
 }
 
 CallbackReturnType SolvedCallback::operator()(const IterationSummary& summary) {
-  return summary.cost < 1e-29 ? SOLVER_TERMINATE_SUCCESSFULLY : SOLVER_CONTINUE;
+  return summary.cost < 1e-26 ? SOLVER_TERMINATE_SUCCESSFULLY : SOLVER_CONTINUE;
 }
 
 AvoidBorderRankCallback::AvoidBorderRankCallback(double *_x) : x(_x), ma_last(1.0) {}
 CallbackReturnType AvoidBorderRankCallback::operator()(const IterationSummary& summary) {
   const int hist = 20;
-  const double maxrat_lower = 1e-2;
+  const double maxrat_lower = 5e-2;
   const double maxrat_rel_var_upper = 0.06;
 
   double ma = accumulate(x,x+MULT*N,0.0,[](double a, double b) {return max(std::abs(a),std::abs(b));} ); 
@@ -53,7 +53,7 @@ CallbackReturnType AvoidBorderRankCallback::operator()(const IterationSummary& s
       mrvar += (mr -mravg) * (mr-mravg);
     }
     mrvar = std::sqrt(mrvar / max_rats.size());
-    if (mravg >= maxrat_lower && mrvar/mravg <= maxrat_rel_var_upper) {
+    if (ma*mravg >= maxrat_lower && mrvar/mravg <= maxrat_rel_var_upper) {
       cout << "USER CANCEL " << mravg << " " << mrvar/mravg << endl;
       return SOLVER_ABORT;
     }
