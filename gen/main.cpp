@@ -57,7 +57,9 @@ int main(int argc, char** argv) {
 
   double x[MULT*N];
 
-  Problem problem;
+  Problem::Options popts;
+  popts.enable_fast_removal = true;
+  Problem problem(popts);
   for (int i=0; i<M; ++i) {
     AddToProblem(problem,x,i);
   }
