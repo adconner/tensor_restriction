@@ -1,9 +1,30 @@
 #include "discrete.h"
 #include "l2reg.h"
 
+class Equal : public SizedCostFunction<MULT,MULT> {
+  public:
+    Equal(cx _x0, double _sqalpha) : x0(_x0), sqalpha(_sqalpha) {}
+    bool Evaluate(const double* const* x,
+                        double* residuals,
+                        double** jacobians) const {
+      residuals[0] = sqalpha*(x[0][0]-x0.real());
+      if (MULT == 2) residuals[1] = sqalpha*(x[0][1]-x0.imag());
+      if (jacobians && jacobians[0]) {
+        jacobians[0][0] = sqalpha;
+        if (MULT == 2) {
+          jacobians[0][1] = 0;
+          jacobians[0][2] = 0;
+          jacobians[0][3] = sqalpha;
+        }
+      }
+      return true;
+    }
+    cx x0;
+    double sqalpha;
+};
+
 void greedy_discrete(Problem &p, double *x, 
-    const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
-    int &successes, DiscreteAttempt da, int trylimit) {
+    const Solver::Options & opts, int &successes, DiscreteAttempt da, int trylimit) {
   auto get_target = [&](cx cur) {
     // if a search over only reals, the real part of the target is used
     if (da == DA_ZERO || abs(cur) < 1e-10) return cx(0.0);
@@ -56,7 +77,7 @@ void greedy_discrete(Problem &p, double *x,
     for (int i=0; i<N; ++i) {
       double cost; cx target; int xi; tie(cost,target,xi) = vals[i];
       if (!p.IsParameterBlockConstant(x+MULT*xi)) {
-        double icost; p.Evaluate(eopts,&icost,0,0,0);
+        double icost; p.Evaluate(Problem::EvaluateOptions(),&icost,0,0,0);
         if (verbose) {
           /* cout << icost << " "; */
           cout << "successes " << successes
@@ -69,22 +90,33 @@ void greedy_discrete(Problem &p, double *x,
           cout << "...";
           cout.flush();
         }
-        x[xi*MULT] = target.real();
-        if (MULT == 2) x[xi*MULT + 1] = target.imag();
-        p.SetParameterBlockConstant(x+MULT*xi);
-        double mcost; p.Evaluate(eopts,&mcost,0,0,0);
+        /* x[xi*MULT] = target.real(); */
+        /* if (MULT == 2) x[xi*MULT + 1] = target.imag(); */
+        /* p.SetParameterBlockConstant(x+MULT*xi); */
+        auto rid = p.AddResidualBlock(new Equal(target,1.0), NULL, {x+MULT*xi});
+        double mcost; p.Evaluate(Problem::EvaluateOptions(),&mcost,0,0,0);
         if (mcost < std::max(better_frac*icost,solved_fine)) {
           if (verbose) cout << " success free " << icost << endl;
+          x[xi*MULT] = target.real();
+          if (MULT == 2) x[xi*MULT + 1] = target.imag();
+          p.SetParameterBlockConstant(x+MULT*xi);
+          p.RemoveResidualBlock(rid);
           successes++;
           goto found;
         } else {
+          ((Equal *)p.GetCostFunctionForResidualBlock(rid))->sqalpha = 1e-2;
           Solver::Summary summary;
           Solve(opts,&p,&summary);
+          ((Equal *)p.GetCostFunctionForResidualBlock(rid))->sqalpha = 1.0;
           tries++;
           if (summary.final_cost <= std::max(better_frac*icost,solved_fine) 
               && *max_element(x,x+N*MULT) < max_elem) { // improved or good enough
             if (verbose) cout << " success " << summary.iterations.size() - 1
                 << " iterations " << summary.final_cost << endl;
+            x[xi*MULT] = target.real();
+            if (MULT == 2) x[xi*MULT + 1] = target.imag();
+            p.SetParameterBlockConstant(x+MULT*xi);
+            p.RemoveResidualBlock(rid);
             successes++;
             l2_reg_refine(p,x,opts);
             logsol(x,"out_partial_sparse.txt");
@@ -92,7 +124,8 @@ void greedy_discrete(Problem &p, double *x,
           }
           if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
               << summary.final_cost << endl;
-          p.SetParameterBlockVariable(x+MULT*xi);
+          p.RemoveResidualBlock(rid);
+          /* p.SetParameterBlockVariable(x+MULT*xi); */
           fails[xi]++;
           copy(sav.begin(),sav.end(),x);
           if (tries >= trylimit) break;
@@ -104,9 +137,43 @@ void greedy_discrete(Problem &p, double *x,
   }
 }
 
+
+
+class LinearCombination : public SizedCostFunction<MULT,MULT,MULT> {
+  public:
+    LinearCombination(double _a, double _b, double _sqalpha = 1.0)
+      : a(_a), b(_b), sqalpha(_sqalpha) {}
+    bool Evaluate(const double* const* x,
+                        double* residuals,
+                        double** jacobians) const {
+      residuals[0] = sqalpha*(a*x[0][0] + b*x[1][0]);
+      if (MULT == 2) residuals[1] = sqalpha*(a*x[0][1] + b*x[1][1]);
+      if (jacobians) {
+        if (jacobians[0]) {
+          jacobians[0][0] = sqalpha*a;
+          if (MULT == 2) {
+            jacobians[0][1] = 0;
+            jacobians[0][2] = 0;
+            jacobians[0][3] = sqalpha*a;
+          }
+        }
+        if (jacobians[1]) {
+          jacobians[1][0] = sqalpha*b;
+          if (MULT == 2) {
+            jacobians[1][1] = 0;
+            jacobians[1][2] = 0;
+            jacobians[1][3] = sqalpha*b;
+          }
+        }
+      }
+      return true;
+    }
+    double a,b;
+    double sqalpha;
+};
+
 void greedy_discrete_pairs(Problem &p, double *x, 
-    const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
-    const int trylimit) {
+    const Solver::Options & opts, const int trylimit) {
   int successes = 0; // not from outside because these dont stack with outside
   map<int,int> vix;
   vector<int> vs;
@@ -179,18 +246,21 @@ void greedy_discrete_pairs(Problem &p, double *x,
         cout.flush();
       }
       auto rid = p.AddResidualBlock(new LinearCombination(alpha,beta), NULL, {x+MULT*i, x+MULT*j});
-      if (diff < 1e-13) {
+      double mcost; p.Evaluate(Problem::EvaluateOptions(),&mcost,0,0,0);
+      if (mcost < std::max(better_frac*icost,solved_fine)) {
         if (verbose) cout << " success free " << diff << endl;
         unio(i,j);
         successes++;
         goto found;
       } else {
         Solver::Summary summary;
+        ((LinearCombination*)p.GetCostFunctionForResidualBlock(rid))->sqalpha = 1e-2;
         Solve(opts,&p,&summary);
+        ((LinearCombination*)p.GetCostFunctionForResidualBlock(rid))->sqalpha = 1.0;
         tries++; 
         if (summary.final_cost <= std::max(better_frac*icost,solved_fine)) {
           if (verbose) cout << " success " << summary.iterations.size() - 1
-              << " iterations " << summary.final_cost << endl;
+            << " iterations " << summary.final_cost << endl;
           unio(i,j);
           successes++;
           l2_reg_refine(p,x,opts);
@@ -205,29 +275,29 @@ void greedy_discrete_pairs(Problem &p, double *x,
       }
     }
     break;
-    found:;
-    if (tries >= trylimit) break;
+found:;
+      if (tries >= trylimit) break;
   }
 }
 
 class ContainedOnLine : public SizedCostFunction<1,MULT> {
   public:
-    ContainedOnLine(cx a_) : a(a_) {}
+    ContainedOnLine(cx _a, double _sqalpha=1.0) : a(_a), sqalpha(_sqalpha) {}
     bool Evaluate(const double* const* x,
-                        double* residuals,
-                        double** jacobians) const {
+        double* residuals,
+        double** jacobians) const {
       assert(MULT == 2);
-      residuals[0] = x[0][0]*a.imag() - x[0][1]*a.real();
+      residuals[0] = sqalpha*(x[0][0]*a.imag() - x[0][1]*a.real());
       if (jacobians) {
         if (jacobians[0]) {
-          jacobians[0][0] = a.imag();
-          jacobians[0][1] = -a.real();
+          jacobians[0][0] = sqalpha*a.imag();
+          jacobians[0][1] = -sqalpha*a.real();
         }
       }
       return true;
     }
-  private:
-    const cx a;
+    cx a;
+    double sqalpha;
 };
 
 void greedy_discrete_lines(Problem &p, double *x, 
@@ -291,19 +361,21 @@ void greedy_discrete_lines(Problem &p, double *x,
         }
         x[xi*MULT] = target.real();
 
-        auto rid = p.AddResidualBlock(new ContainedOnLine(target), NULL, {x+MULT*i});
-        p.Evaluate(Problem::EvaluateOptions(),&cost,0,0,0);
-        if (cost < 1e-20) {
-          if (verbose) cout << " success free " << cost << endl;
+        auto rid = p.AddResidualBlock(new ContainedOnLine(target), NULL, {x+MULT*xi});
+        double mcost; p.Evaluate(Problem::EvaluateOptions(),&mcost,0,0,0);
+        if (mcost < std::max(better_frac*icost,solved_fine)) {
+          if (verbose) cout << " success free " << mcost << endl;
           successes.insert(xi);
           goto found;
         } else {
           Solver::Summary summary;
+          ((ContainedOnLine*)p.GetCostFunctionForResidualBlock(rid))->sqalpha = 1e-2;
           Solve(opts,&p,&summary);
+          ((ContainedOnLine*)p.GetCostFunctionForResidualBlock(rid))->sqalpha = 1.0;
           tries++; 
           if (summary.final_cost <= std::max(better_frac*icost,solved_fine)) {
             if (verbose) cout << " success " << summary.iterations.size() - 1
-                << " iterations " << summary.final_cost << endl;
+              << " iterations " << summary.final_cost << endl;
             successes.insert(xi);
             l2_reg_refine(p,x,opts);
             logsol(x,"out_partial_sparse.txt");
@@ -319,7 +391,7 @@ void greedy_discrete_lines(Problem &p, double *x,
       }
     }
     break;
-    found:;
-    if (tries >= trylimit) break;
+found:;
+      if (tries >= trylimit) break;
   }
 }

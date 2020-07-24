@@ -7,7 +7,6 @@
 #include "util.h"
 
 // control variables
-double sqalpha; // square root of l2 regularization coefficient
 bool print_lines;
 
 void logsol(double *x, string fname) {
@@ -48,46 +47,3 @@ CallbackReturnType PrintCallback::operator()(const IterationSummary& summary) {
   return SOLVER_CONTINUE;
 }
 
-Equal::Equal(double _a, cx _x0) : a(_a), x0(_x0) {}
-bool Equal::Evaluate(const double* const* x,
-                    double* residuals,
-                    double** jacobians) const {
-  residuals[0] = a*(x[0][0]-x0.real());
-  if (MULT == 2) residuals[1] = a*(x[0][1]-x0.imag());
-  if (jacobians && jacobians[0]) {
-    jacobians[0][0] = a;
-    if (MULT == 2) {
-      jacobians[0][1] = 0;
-      jacobians[0][2] = 0;
-      jacobians[0][3] = a;
-    }
-  }
-  return true;
-}
-
-LinearCombination::LinearCombination(double _a, double _b) : a(_a), b(_b) {}
-bool LinearCombination::Evaluate(const double* const* x,
-                    double* residuals,
-                    double** jacobians) const {
-  residuals[0] = a*x[0][0] + b*x[1][0];
-  if (MULT == 2) residuals[1] = a*x[0][1] + b*x[1][1];
-  if (jacobians) {
-    if (jacobians[0]) {
-      jacobians[0][0] = a;
-      if (MULT == 2) {
-        jacobians[0][1] = 0;
-        jacobians[0][2] = 0;
-        jacobians[0][3] = a;
-      }
-    }
-    if (jacobians[1]) {
-      jacobians[1][0] = b;
-      if (MULT == 2) {
-        jacobians[1][1] = 0;
-        jacobians[1][2] = 0;
-        jacobians[1][3] = b;
-      }
-    }
-  }
-  return true;
-}
