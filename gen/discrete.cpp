@@ -103,7 +103,6 @@ void greedy_discrete(Problem &p, double *x,
         double mcost; p.Evaluate(Problem::EvaluateOptions(),&mcost,0,0,0);
         if (mcost < std::max(better_frac*icost,solved_fine)) {
           if (verbose) cout << " success free " << icost << endl;
-          cout << "tar " << target.real() << "+i" << target.imag() << " = " <<x[xi*MULT] <<"+i"<<x[xi*MULT+1] << endl;
 #ifdef EQ_DISCRETE
           x[xi*MULT] = target.real();
           if (MULT == 2) x[xi*MULT + 1] = target.imag();
