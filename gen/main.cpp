@@ -138,8 +138,11 @@ int main(int argc, char** argv) {
     int successes = 0;
     greedy_discrete(problem,x,options,eopts,successes,DA_ZERO,N);
     /* greedy_discrete_pairs(problem,x,options,eopts,N); */
-    greedy_discrete(problem,x,options,eopts,successes,DA_PM_ONE,N);
-    /* greedy_discrete(problem,x,options,eopts,successes,DA_E3,N); */
+    /* greedy_discrete(problem,x,options,eopts,successes,DA_PM_ONE,N); */
+
+    l2_reg_refine(problem,x,options);
+    greedy_discrete_lines(problem,x,options,eopts,N-successes);
+    greedy_discrete(problem,x,options,eopts,successes,DA_E3,N-successes);
 
     /* for (int refine=1; refine<=1; ++refine) { */
     /*   options.max_num_iterations *= 2; */

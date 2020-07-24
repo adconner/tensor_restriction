@@ -28,6 +28,7 @@ void greedy_discrete(Problem &p, double *x,
     }
     return target;
   };
+  int tries = 0;
   vector<int> fails(N);
   while (true) {
     vector<tuple<double,cx,int> > vals(N);
@@ -79,6 +80,7 @@ void greedy_discrete(Problem &p, double *x,
         } else {
           Solver::Summary summary;
           Solve(opts,&p,&summary);
+          tries++;
           if (summary.final_cost <= std::max(better_frac*icost,solved_fine) 
               && *max_element(x,x+N*MULT) < max_elem) { // improved or good enough
             if (verbose) cout << " success " << summary.iterations.size() - 1
@@ -93,7 +95,7 @@ void greedy_discrete(Problem &p, double *x,
           p.SetParameterBlockVariable(x+MULT*xi);
           fails[xi]++;
           copy(sav.begin(),sav.end(),x);
-          if (std::accumulate(fails.begin(),fails.end(),0)+successes >= trylimit) break;
+          if (tries >= trylimit) break;
         }
       }
     }
@@ -177,7 +179,6 @@ void greedy_discrete_pairs(Problem &p, double *x,
         cout.flush();
       }
       auto rid = p.AddResidualBlock(new LinearCombination(alpha,beta), NULL, {x+MULT*i, x+MULT*j});
-      // evaluation seems not to work before resolving, so use diff directly to detect free relations
       if (diff < 1e-13) {
         if (verbose) cout << " success free " << diff << endl;
         unio(i,j);
@@ -201,6 +202,117 @@ void greedy_discrete_pairs(Problem &p, double *x,
         p.RemoveResidualBlock(rid);
         copy(sav.begin(),sav.end(),x);
         if (tries >= trylimit) break;
+      }
+    }
+    break;
+    found:;
+    if (tries >= trylimit) break;
+  }
+}
+
+class ContainedOnLine : public SizedCostFunction<1,MULT> {
+  public:
+    ContainedOnLine(cx a_) : a(a_) {}
+    bool Evaluate(const double* const* x,
+                        double* residuals,
+                        double** jacobians) const {
+      assert(MULT == 2);
+      residuals[0] = x[0][0]*a.imag() - x[0][1]*a.real();
+      if (jacobians) {
+        if (jacobians[0]) {
+          jacobians[0][0] = a.imag();
+          jacobians[0][1] = -a.real();
+        }
+      }
+      return true;
+    }
+  private:
+    const cx a;
+};
+
+void greedy_discrete_lines(Problem &p, double *x, 
+    const Solver::Options & opts, const Problem::EvaluateOptions &eopts,
+    int trylimit) {
+  assert(MULT == 2);
+  auto get_target = [&](cx cur) {
+    vector<cx> targets { {1.0,0.0}, {-0.5, 0.866025403784439}, {-0.5, -0.866025403784439} };
+    double dist = 1e15;
+    cx target = cx(0);
+    for (cx a: targets) {
+      double curdist = std::abs(a.imag()*cur.real()-a.real()*cur.imag());
+      if (curdist < dist) {
+        dist = curdist;
+        target = a;
+      }
+    }
+    return target;
+  };
+  vector<int> fails(N);
+  int tries = 0;
+  set<int> successes;
+  while (true) {
+    vector<tuple<double,cx,int> > vals(N);
+    for (int i=0; i<N; ++i) {
+      cx cur = cx(x[i*MULT],x[i*MULT+1]);
+      cx target = get_target(cur);
+      get<0>(vals[i]) = std::abs(target.imag()*cur.real()-target.real()*cur.imag());
+      get<1>(vals[i]) = target;
+      get<2>(vals[i]) = i;
+    }
+    sort(vals.begin(),vals.end(),[&](const auto &a,const auto &b) {
+        auto key = [&](const auto &a) {
+          double cost; cx target; int i; tie(cost,target,i) = a;
+          return make_tuple(!(cost < 1e-13), fails[i], 
+              /* (i % 25 == 0), */
+              /* ((i % 5 == 0) || ((i / 5) % 5 == 0)), */
+              /* ! (i % 25 == 0), */
+              /* ! ((i % 5 == 0) || ((i / 5) % 5 == 0)), */
+              /* i, */ 
+              cost );
+        };
+        return key(a) < key(b);
+    });
+    vector<double> sav(x,x+N*MULT);
+    for (int i=0; i<N; ++i) {
+      double cost; cx target; int xi; tie(cost,target,xi) = vals[i];
+      if (!p.IsParameterBlockConstant(x+MULT*xi) && !successes.count(xi)) {
+        double icost; p.Evaluate(Problem::EvaluateOptions(),&icost,0,0,0);
+        if (verbose) {
+          /* cout << icost << " "; */
+          cout << "successes " << successes.size()
+            << " fails " << std::accumulate(fails.begin(),fails.end(),0)
+            << " lfails " << fails[xi]
+            << " setting " << target.imag() << "*x[" << MULT*xi << "] + "
+            << -target.real() << "*x[" << MULT*xi + 1 << "] = 0...";
+          cout.flush();
+        }
+        x[xi*MULT] = target.real();
+
+        auto rid = p.AddResidualBlock(new ContainedOnLine(target), NULL, {x+MULT*i});
+        p.Evaluate(Problem::EvaluateOptions(),&cost,0,0,0);
+        if (cost < 1e-20) {
+          if (verbose) cout << " success free " << cost << endl;
+          successes.insert(xi);
+          goto found;
+        } else {
+          Solver::Summary summary;
+          Solve(opts,&p,&summary);
+          tries++; 
+          if (summary.final_cost <= std::max(better_frac*icost,solved_fine)) {
+            if (verbose) cout << " success " << summary.iterations.size() - 1
+                << " iterations " << summary.final_cost << endl;
+            successes.insert(xi);
+            l2_reg_refine(p,x,opts);
+            logsol(x,"out_partial_sparse.txt");
+            goto found;
+          }
+          if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
+            << summary.final_cost << endl;
+          fails[xi]++;
+          p.RemoveResidualBlock(rid);
+          copy(sav.begin(),sav.end(),x);
+          if (tries >= trylimit) break;
+        }
       }
     }
     break;
