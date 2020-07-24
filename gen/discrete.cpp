@@ -1,6 +1,9 @@
 #include "discrete.h"
 #include "l2reg.h"
 
+#define EQ_DISCRETE
+const double discrete_sqalpha = 1e4;
+
 class Equal : public SizedCostFunction<MULT,MULT> {
   public:
     Equal(cx _x0, double _sqalpha) : x0(_x0), sqalpha(_sqalpha) {}
@@ -90,33 +93,42 @@ void greedy_discrete(Problem &p, double *x,
           cout << "...";
           cout.flush();
         }
-        /* x[xi*MULT] = target.real(); */
-        /* if (MULT == 2) x[xi*MULT + 1] = target.imag(); */
-        /* p.SetParameterBlockConstant(x+MULT*xi); */
+#ifdef EQ_DISCRETE
         auto rid = p.AddResidualBlock(new Equal(target,1.0), NULL, {x+MULT*xi});
+#else
+        x[xi*MULT] = target.real();
+        if (MULT == 2) x[xi*MULT + 1] = target.imag();
+        p.SetParameterBlockConstant(x+MULT*xi);
+#endif
         double mcost; p.Evaluate(Problem::EvaluateOptions(),&mcost,0,0,0);
         if (mcost < std::max(better_frac*icost,solved_fine)) {
           if (verbose) cout << " success free " << icost << endl;
+          cout << "tar " << target.real() << "+i" << target.imag() << " = " <<x[xi*MULT] <<"+i"<<x[xi*MULT+1] << endl;
+#ifdef EQ_DISCRETE
           x[xi*MULT] = target.real();
           if (MULT == 2) x[xi*MULT + 1] = target.imag();
           p.SetParameterBlockConstant(x+MULT*xi);
           p.RemoveResidualBlock(rid);
+#endif
           successes++;
           goto found;
         } else {
-          ((Equal *)p.GetCostFunctionForResidualBlock(rid))->sqalpha = 1e-2;
+#ifdef EQ_DISCRETE
+          ((Equal *)p.GetCostFunctionForResidualBlock(rid))->sqalpha = discrete_sqalpha;
+#endif
           Solver::Summary summary;
           Solve(opts,&p,&summary);
-          ((Equal *)p.GetCostFunctionForResidualBlock(rid))->sqalpha = 1.0;
           tries++;
           if (summary.final_cost <= std::max(better_frac*icost,solved_fine) 
               && *max_element(x,x+N*MULT) < max_elem) { // improved or good enough
             if (verbose) cout << " success " << summary.iterations.size() - 1
                 << " iterations " << summary.final_cost << endl;
+#ifdef EQ_DISCRETE
             x[xi*MULT] = target.real();
             if (MULT == 2) x[xi*MULT + 1] = target.imag();
             p.SetParameterBlockConstant(x+MULT*xi);
             p.RemoveResidualBlock(rid);
+#endif
             successes++;
             l2_reg_refine(p,x,opts);
             logsol(x,"out_partial_sparse.txt");
@@ -124,8 +136,11 @@ void greedy_discrete(Problem &p, double *x,
           }
           if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
               << summary.final_cost << endl;
+#ifdef EQ_DISCRETE
           p.RemoveResidualBlock(rid);
-          /* p.SetParameterBlockVariable(x+MULT*xi); */
+#else
+          p.SetParameterBlockVariable(x+MULT*xi);
+#endif
           fails[xi]++;
           copy(sav.begin(),sav.end(),x);
           if (tries >= trylimit) break;
@@ -254,7 +269,7 @@ void greedy_discrete_pairs(Problem &p, double *x,
         goto found;
       } else {
         Solver::Summary summary;
-        ((LinearCombination*)p.GetCostFunctionForResidualBlock(rid))->sqalpha = 1e-2;
+        ((LinearCombination*)p.GetCostFunctionForResidualBlock(rid))->sqalpha = discrete_sqalpha;
         Solve(opts,&p,&summary);
         ((LinearCombination*)p.GetCostFunctionForResidualBlock(rid))->sqalpha = 1.0;
         tries++; 
@@ -369,7 +384,7 @@ void greedy_discrete_lines(Problem &p, double *x,
           goto found;
         } else {
           Solver::Summary summary;
-          ((ContainedOnLine*)p.GetCostFunctionForResidualBlock(rid))->sqalpha = 1e-2;
+          ((ContainedOnLine*)p.GetCostFunctionForResidualBlock(rid))->sqalpha = discrete_sqalpha;
           Solve(opts,&p,&summary);
           ((ContainedOnLine*)p.GetCostFunctionForResidualBlock(rid))->sqalpha = 1.0;
           tries++; 
