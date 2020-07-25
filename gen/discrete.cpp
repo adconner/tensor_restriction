@@ -318,10 +318,10 @@ void greedy_discrete_lines(Problem &p, double *x,
     const Solver::Options & opts, int ei, int trylimit) {
   assert(MULT == 2);
   auto get_target = [&](cx cur) {
-    vector<cx> targets; //{ {1.0,0.0}, {-0.5, 0.866025403784439}, {-0.5, -0.866025403784439} };
+    vector<cx> targets(ei%2 ? ei : ei/2);
     double pi = std::atan(1)*4;
-    for (int i=0; i < ei%2 ? ei : ei/2 ; ++i) {
-      targets.push_back(cx(std::cos(2*pi/ei),std::sin(2*pi/ei)));
+    for (int i=0; i < targets.size() ; ++i) {
+      targets[i] = cx(std::cos(2*pi*i/ei),std::sin(2*pi*i/ei));
     }
     double dist = 1e15;
     cx target = cx(0);
