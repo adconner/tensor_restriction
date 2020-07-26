@@ -91,7 +91,6 @@ void l2_reg_refine(Problem &problem, double *x, const Solver::Options & opts) {
       cout << summary.initial_cost << " -> " << summary.final_cost << endl; cout.flush();
     }
 
-    print_lines = false;
     if (summary.final_cost > solved_fine) {
       copy(sav.begin(),sav.end(),x);
       if (verbose >= 2) cout << "l2 reg failed, retrying" << endl;
