@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <iterator>
-#include <random>
 #include <fstream>
 #include <memory>
 #include <limits>
@@ -9,6 +8,7 @@
 
 // control variables
 bool print_lines;
+mt19937 rng;
 
 void logsol(double *x, string fname) {
   if (tostdout) {

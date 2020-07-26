@@ -4,6 +4,7 @@
 #include <string>
 #include <complex>
 #include <deque>
+#include <random>
 #include "opts.h"
 
 using namespace std;
@@ -11,6 +12,7 @@ using namespace ceres;
 typedef complex<double> cx;
 
 extern bool print_lines;
+extern mt19937 rng;
 
 void logsol(double *x, string fname);
 

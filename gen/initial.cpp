@@ -1,8 +1,8 @@
-#include <random>
 #include <algorithm>
 #include <fstream>
 #include <vector>
 #include <cassert>
+#include "util.h"
 #include "initial.h"
 #include "opts.h"
 
@@ -46,12 +46,10 @@ vi combination(int ix, const vi &mi, const vi &ma, const vi &costs, int cost, co
 }
 
 void fill_initial(double *x, int argc, char **argv, Problem &problem) {
-  random_device rd;
-  mt19937 gen(rd());
   /* srand(time(0)); */
   if (argc == 1) {
     normal_distribution<> dist(0,0.4);
-    generate_n(x,MULT*N,[&] {return dist(gen);});
+    generate_n(x,MULT*N,[&] {return dist(rng);});
     /* generate_n(x,MULT*N,[&] {return 1.0 - 2*(rand() / (double)RAND_MAX);}); */
   } else {
     ifstream in(argv[1]);
@@ -63,7 +61,7 @@ void fill_initial(double *x, int argc, char **argv, Problem &problem) {
   vi comin(omin,omin+OS), comax(omax,omax+OS), cocost(ocost,ocost+OS), 
      coMAX(oMAX,oMAX+OS), covars(ovars,ovars+OS);
   vvi dp(ncombinations(comin,comax,cocost,TCOST));
-  int ix = uniform_int_distribution<>(0,dp.back().back()-1)(gen);
+  int ix = uniform_int_distribution<>(0,dp.back().back()-1)(rng);
   vi oix(combination(ix,comin,comax,cocost,TCOST,dp));
   if (verbose) {
     cout << "orbit structure " << ix << "/" << dp.back().back() << ", ";

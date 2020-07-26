@@ -54,6 +54,8 @@ void solver_opts(Solver::Options &options) {
 int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);
   cout.precision(numeric_limits<double>::digits10);
+  random_device rd;
+  rng.seed(rd());
 
   double x[MULT*N];
 
