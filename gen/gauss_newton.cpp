@@ -72,11 +72,12 @@ void gauss_newton(Problem &p, double *x, double xtol, int max_it, double rcond) 
       x[xis[i/MULT]*MULT+i%MULT] -= t0*rs[i];
       dx += rs[i]*rs[i]*t0*t0;
     }
+    dx = std::sqrt(dx);
     double acost;
     p.Evaluate(eopts,&acost,&rs,0,&jac_sparse);
 
     if (verbose) {
-      cout << it << " " << acost << " " << m << "x" << n << " jac, rank " << rank << " dx " << std::sqrt(dx) << " " << t0 << endl;
+      cout << it << " " << acost << " " << m << "x" << n << " jac, rank " << rank << " dx " << dx << " " << t0 << endl;
     }
     if (acost < 1e-26)
       break;
