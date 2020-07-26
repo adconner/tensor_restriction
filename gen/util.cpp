@@ -74,7 +74,7 @@ CallbackReturnType PrintCallback::operator()(const IterationSummary& summary) {
     cout << summary.iteration << " " << summary.cost << " " << ma <<
       " " << summary.relative_decrease << " " <<
       ((ma - ma_last) / ma) / (summary.cost_change / summary.cost)
-      << endl;
+      << " " << summary.step_norm << endl;
     ma_last = ma;
     /* if (ma > 4 && summary.iteration >= 10) */
     /*   return SOLVER_ABORT; */
