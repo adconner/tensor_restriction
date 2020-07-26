@@ -54,7 +54,6 @@ CallbackReturnType AvoidBorderRankCallback::operator()(const IterationSummary& s
     }
     mrvar = std::sqrt(mrvar / max_rats.size());
     if (ma*mravg >= maxrat_lower && mrvar/mravg <= maxrat_rel_var_upper) {
-      cout << "USER CANCEL " << mravg << " " << mrvar/mravg << endl;
       return SOLVER_ABORT;
     }
   }
