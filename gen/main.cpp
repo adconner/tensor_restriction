@@ -105,7 +105,6 @@ int main(int argc, char** argv) {
     }
   }
 
-  options.minimizer_type = TRUST_REGION;
   options.max_num_iterations = iterations_fine;
   Solver::Summary summary;
   double cost; problem.Evaluate(eopts,&cost,0,0,0);
@@ -134,7 +133,6 @@ int main(int argc, char** argv) {
     }
     if (verbose) cout << "solution better than attempt_sparse_thresh, sparsifying..." << endl;
 
-    options.minimizer_type = TRUST_REGION;
     options.max_num_iterations = iterations_discrete;
     options.function_tolerance = ftol_discrete;
     print_lines = false;
