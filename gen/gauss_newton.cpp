@@ -23,7 +23,12 @@ void gauss_newton(Problem &p, double *x, double xtol, int max_it, double rcond) 
   vector<int> jpvt;
 #endif
 
+  double rcondsav = rcond;
+  vector<double> xstart(x,x+MULT*N);
   vector<double> sav(MULT*N);
+  vector<double> bestx(MULT*N);
+  double best = 1e15;
+
   for (int it = 1; it <= max_it ; ++it) {
     jac.assign(jac.size(),0.0);
     for (int i=0; i < m; ++i) {
@@ -75,15 +80,34 @@ void gauss_newton(Problem &p, double *x, double xtol, int max_it, double rcond) 
     dx = std::sqrt(dx);
     double acost;
     p.Evaluate(eopts,&acost,&rs,0,&jac_sparse);
+    if (acost < best) {
+      copy(x,x+MULT*N,bestx.begin());
+      best = acost;
+    }
 
     if (verbose) {
-      cout << it << " " << acost << " " << m << "x" << n << " jac, rank " << rank << " dx " << dx << " " << t0 << endl;
+      double dxall = 0;
+      for (int i=0; i<MULT*N; ++i) {
+        dxall += (x[i]-xstart[i])*(x[i]-xstart[i]);
+      }
+      dxall = std::sqrt(dxall);
+      cout << it << " " << acost << " " << m << "x" << n << " jac, rank " << rank << " dx " << dx << " " << t0 << " " << dxall << endl;
     }
-    if (acost < 1e-26)
+
+    if (acost < 1e-26) {
       break;
-    if (dx < xtol)
-      break;
+    }
+
+    if (dx < xtol) {
+      rcond /= 100;
+      /* cout << "RCOND " << rcond << endl;; */
+      /* break; */
+    } else {
+      rcond = rcondsav;
+    }
+
     cost = acost;
   }
+  copy(bestx.begin(),bestx.end(),x);
 
 }
