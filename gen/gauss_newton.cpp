@@ -99,6 +99,9 @@ void gauss_newton(Problem &p, double *x, double xtol, int max_it, double rcond) 
     }
 
     if (dx < xtol) {
+      if (rank == min(m,n)) {
+        break;
+      }
       rcond /= 100;
       /* cout << "RCOND " << rcond << endl;; */
       /* break; */
