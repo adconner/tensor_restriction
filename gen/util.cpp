@@ -53,7 +53,9 @@ CallbackReturnType AvoidBorderRankCallback::operator()(const IterationSummary& s
       mrvar += (mr -mravg) * (mr-mravg);
     }
     mrvar = std::sqrt(mrvar / max_rats.size());
-    if (ma*mravg >= maxrat_lower && mrvar/mravg <= maxrat_rel_var_upper) {
+    if (ma*mravg >= maxrat_lower*10 || 
+       (ma*mravg >= maxrat_lower && mrvar/mravg <= maxrat_rel_var_upper)) { 
+      /* cout << "EXPLODING FAIL " << ma*mravg << " " << mravg << " " << mrvar/mravg << endl; */
       return SOLVER_ABORT;
     }
   }
