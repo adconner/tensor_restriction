@@ -2,7 +2,7 @@
 CFLAGS=-O3 -ffast-math -march=native
 # CFLAGS=-g
 CXXFLAGS=-std=c++14 -I/usr/include/eigen3 $(shell pkg-config --cflags clp) $(CFLAGS)
-LDFLAGS=$(shell pkg-config --libs clp) -llapacke -lceres -lcxsparse -lcholmod -lumfpack -lamd -lcamd -lcolamd -lccolamd -lbtf -lsuitesparseconfig -lmetis -llapack -lopenblas -lglog -lomp -pthread  $(CFLAGS)
+LDFLAGS=-llapacke $(shell pkg-config --libs clp) -lceres -lcxsparse -lcholmod -lumfpack -lamd -lcamd -lcolamd -lccolamd -lbtf -lsuitesparseconfig -lmetis -llapack -lopenblas -lglog -lomp -pthread  $(CFLAGS)
 CC=clang
 CXX=clang++
 
