@@ -71,7 +71,7 @@ int main(int argc, const char** argv) {
   ceres::ParameterBlockOrdering pbo;
   SetParameterBlockOrdering(pbo, x);
 
-  fill_initial(x,argc,argv,problem);
+  fill_initial(x,problem,argc>1 ? argv[1] : "");
 
   /* int maxi = 42*25; */
   /* for (int i=maxi; i < N; ++i) { */

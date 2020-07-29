@@ -45,14 +45,14 @@ vi combination(int ix, const vi &mi, const vi &ma, const vi &costs, int cost, co
   return res;
 }
 
-void fill_initial(double *x, int argc, const char **argv, Problem &problem) {
+void fill_initial(double *x, Problem &problem, string fname) {
   /* srand(time(0)); */
-  if (argc == 1) {
+  if (fname.empty()) {
     normal_distribution<> dist(0,0.4);
     generate_n(x,MULT*N,[&] {return dist(rng);});
     /* generate_n(x,MULT*N,[&] {return 1.0 - 2*(rand() / (double)RAND_MAX);}); */
   } else {
-    ifstream in(argv[1]);
+    ifstream in(fname);
     for (int i=0; i<MULT*N; ++i)
       in >> x[i];
   }
