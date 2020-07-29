@@ -45,7 +45,7 @@ vi combination(int ix, const vi &mi, const vi &ma, const vi &costs, int cost, co
   return res;
 }
 
-void fill_initial(double *x, int argc, char **argv, Problem &problem) {
+void fill_initial(double *x, int argc, const char **argv, Problem &problem) {
   /* srand(time(0)); */
   if (argc == 1) {
     normal_distribution<> dist(0,0.4);

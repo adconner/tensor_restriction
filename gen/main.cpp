@@ -51,7 +51,7 @@ void solver_opts(Solver::Options &options) {
 }
 
 
-int main(int argc, char** argv) {
+int main(int argc, const char** argv) {
   google::InitGoogleLogging(argv[0]);
   cout.precision(numeric_limits<double>::digits10);
   random_device rd;
