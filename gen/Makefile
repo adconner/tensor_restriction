@@ -9,8 +9,8 @@ CXX=clang++
 # .SUFFIXES:
 
 ofiles=util.o discrete.o initial.o l2reg.o gauss_newton.o
+ofiles+=$(sort $(patsubst %.cpp,%.o,$(wildcard gen/*.cpp)))
 ofiles+=$(sort $(patsubst %.c,%.o,$(wildcard gen/*.c)))
-ofiles+=$(sort $(patsubst %.c,%.o,$(wildcard gen/*.cpp)))
 
 main: main.o $(ofiles)
 	$(CXX) $^ -o $@ $(LDFLAGS)
