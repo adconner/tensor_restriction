@@ -18,7 +18,6 @@ using namespace std;
 
 void solver_opts(Solver::Options &options) {
   options.num_threads = 1;
-  options.num_linear_solver_threads = 1;
 
   /* options.minimizer_type = LINE_SEARCH; */
   // trust region options

@@ -1,7 +1,7 @@
 #ifndef _OPTS_H_
 #define _OPTS_H_
 
-#include "prob.h"
+#include "gen/prob.h"
 
 const int verbose = 2;
 const bool tostdout = false;
