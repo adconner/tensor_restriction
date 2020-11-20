@@ -45,4 +45,6 @@ const double better_frac = 1.0; // will accept if still solved or no worse than 
  *  const double ftol_discrete = 0.0004; // ~ solved_fine ^ (1/iterations_discrete)
  */
 
+void solver_opts(ceres::Solver::Options &options);
+
 #endif
