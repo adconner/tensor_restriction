@@ -12,19 +12,44 @@ struct L2Regularization : public CostFunction {
   bool Evaluate(const double* const* x,
       double* residuals,
       double** jacobians) const {
-    assert (MULT == 1);
-    for (int i=0; i<num_residuals(); ++i) {
-      double tar = max(min(x[0][i],b_[i]),-b_[i]);
-      residuals[i] = sqalpha_[i]*(x[0][i]-tar);
-    }
     if (jacobians && jacobians[0]) {
       fill(jacobians[0],jacobians[0]+num_residuals()*num_residuals(),0.0);
-      for (int i=0; i<num_residuals(); ++i) {
-        if (abs(x[0][i]) > b_[i]) {
-          jacobians[0][i*num_residuals()+i] = sqalpha_[i];
+    }
+    for (int i=0; i<block_size_; ++i) {
+      if (MULT == 1) {
+        double tar = max(min(x[0][i],b_[i]),-b_[i]);
+        residuals[i] = sqalpha_[i]*(x[0][i]-tar);
+        if (jacobians && jacobians[0]) {
+          jacobians[0][i*num_residuals()+i] = abs(x[0][i]) <= b_[i] ? 0 : sqalpha_[i];
+        }
+      } else { // MULT == 2
+        cx xc(x[0][2*i],x[0][2*i+1]);
+        if (abs(xc) <= b_[i]) {
+          residuals[i*2] = residuals[i*2+1] = 0;
+          if (jacobians && jacobians[0]) {
+            jacobians[0][2*i*num_residuals()+2*i] = 0.0;
+            jacobians[0][(2*i+1)*num_residuals()+2*i+1] = 0.0;
+          }
+        } else {
+          cx tar = xc / abs(xc);
+          cx r = sqalpha_[i]*(xc-tar);
+          residuals[i*2] = real(r);
+          residuals[i*2+1] = imag(r);
+          if (jacobians && jacobians[0]) {
+            jacobians[0][2*i*num_residuals()+2*i] = sqalpha_[i];
+            jacobians[0][(2*i+1)*num_residuals()+2*i+1] = sqalpha_[i];
+          }
         }
       }
     }
+    /* if (jacobians && jacobians[0]) { */
+    /*   fill(jacobians[0],jacobians[0]+num_residuals()*num_residuals(),0.0); */
+    /*   for (int i=0; i<num_residuals(); ++i) { */
+    /*     if (abs(x[0][i]) > b_[i]) { */
+    /*       jacobians[0][i*num_residuals()+i] = sqalpha_[i]; */
+    /*     } */
+    /*   } */
+    /* } */
     return true;
   }
   int block_size_;
@@ -61,6 +86,7 @@ MyTerminationType l2_reg(Problem &problem, double *x, const Solver::Options &opt
 
   Solver::Summary summary;
   Solve(options, &problem, &summary);
+  /* cout << summary.FullReport() << endl; */
 
   for (auto rid : rids) {
     problem.RemoveResidualBlock(rid);
@@ -109,7 +135,7 @@ MyTerminationType l2_reg_search(Problem &problem, double *x, double target_relat
         } else {
           consecutive_border_evidence = 0;
         }
-        if (consecutive_border_evidence >= 6) {
+        if (ma > 10 || consecutive_border_evidence >= 6) {
           return BORDER_LIKELY;
         }
       }
