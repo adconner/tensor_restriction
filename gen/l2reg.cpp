@@ -19,6 +19,9 @@ class FunctorCallback : public IterationCallback {
 
 MyTerminationType solve(MyProblem &p, Solver::Summary &summary, 
     double relftol, int max_num_iterations) {
+  if (!count(p.variable_mask.begin(),p.variable_mask.end(),true)) {
+    return UNKNOWN;
+  }
   Solver::Options options;
   solver_opts(options);
   options.function_tolerance = 1e-30;
@@ -93,6 +96,9 @@ struct L2Regularization : public CostFunction {
 };
 
 MyTerminationType l2_reg(MyProblem &p, const Solver::Options &opts, double *sqalpha, double *b, upf f) {
+  if (!count(p.variable_mask.begin(),p.variable_mask.end(),true)) {
+    return UNKNOWN;
+  }
   vector<ResidualBlockId> rids;
   for (int i=0; i<BLOCKS; ++i) {
     rids.push_back(p.p.AddResidualBlock(
