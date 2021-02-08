@@ -43,10 +43,10 @@ int main(int argc, const char** argv) {
   /* return 1; */
 
   /* if (term == SOLUTION) { */
-  /*   logsol(x,"out_dense.txt"); */
-  /*   double ma = minimize_max_abs(p, x, 1e-3, 0.8, 1e-4); */
-  /*   sparsify(p, x, 1.0, 1e-4); */
-  /*   sparsify(p, x, 1.0, 1e-4); */
+  /*   logsol(p,"out_dense.txt"); */
+  /*   double ma = minimize_max_abs(p, 1e-1); */
+  /*   sparsify(p, 1.0, 1e-4); */
+  /*   sparsify(p, 1.0, 1e-4); */
   /*   cout << "ma " << ma << endl; */
   /*   logsol(p,"out.txt"); */
   /*   return 0; */
@@ -56,7 +56,7 @@ int main(int argc, const char** argv) {
   if (term == SOLUTION) {
     logsol(p,"out_dense.txt");
     minimize_max_abs(p, 1e-1);
-    /* sparsify(p, x, 1.0, 1e-4); */
+    /* sparsify(p, 1.0, 1e-4); */
     int successes = 0;
     greedy_discrete(p, successes, DA_ZERO, N);
     greedy_discrete(p, successes, DA_E3, N);

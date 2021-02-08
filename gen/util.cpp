@@ -25,36 +25,36 @@ void logsol(const MyProblem &p, string fname) {
 
 pair<int,int> get_coordinates(int i) {
   assert(i < N);
-  int k = *(find_if(BBOUND+1,BBOUND+BLOCKS+1,[&](int j){return j > i;})-1);
-  return make_pair(k,i-k);
+  int bi = find_if(BBOUND+1,BBOUND+BLOCKS+1,[&](int j){return j > i;})-BBOUND-1;
+  return make_pair(bi,i-BBOUND[bi]);
 }
 
 void set_value_constant_or_variable(MyProblem &p, int i, bool variable) {
   if (p.variable_mask[i] == variable) 
     return;
   p.variable_mask[i] = variable;
-  int b,k; tie(b,k) = get_coordinates(i);
-  int bsize = BBOUND[b+1] - BBOUND[b];
+  int bi,k; tie(bi,k) = get_coordinates(i);
+  int bsize = BBOUND[bi+1] - BBOUND[bi];
   if (bsize == 1) {
     assert(k==0);
     if (variable) {
-      p.p.SetParameterBlockVariable(p.x.data()+b*MULT);
+      p.p.SetParameterBlockVariable(p.x.data()+BBOUND[bi]*MULT);
     } else {
-      p.p.SetParameterBlockConstant(p.x.data()+b*MULT);
+      p.p.SetParameterBlockConstant(p.x.data()+BBOUND[bi]*MULT);
     }
   } else {
     vector<int> v;
     for (int j=0; j<bsize; ++j) {
-      if (!p.variable_mask[BBOUND[b]+j]) {
+      if (!p.variable_mask[BBOUND[bi]+j]) {
         for (int s=0; s<MULT; ++s) {
           v.push_back(j*MULT + s);
         }
       }
     }
     if (v.empty()) {
-      p.p.SetParameterization(p.x.data()+b*MULT,0);
+      p.p.SetParameterization(p.x.data()+BBOUND[bi]*MULT,0);
     } else {
-      p.p.SetParameterization(p.x.data()+b*MULT,
+      p.p.SetParameterization(p.x.data()+BBOUND[bi]*MULT,
           new SubsetParameterization(bsize*MULT,v));
     }
   }
