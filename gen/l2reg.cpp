@@ -17,13 +17,14 @@ class FunctorCallback : public IterationCallback {
     MyTerminationType termination_;
 };
 
-MyTerminationType solve(MyProblem &p, double relftol, Solver::Summary &summary) {
+MyTerminationType solve(MyProblem &p, Solver::Summary &summary, 
+    double relftol, int max_num_iterations) {
   Solver::Options options;
   solver_opts(options);
   options.function_tolerance = 1e-30;
   options.parameter_tolerance = 1e-30;
   options.gradient_tolerance = 1e-30;
-  options.max_num_iterations = 1000;
+  options.max_num_iterations = max_num_iterations;
 
   unique_ptr<FunctorCallback> callback(new FunctorCallback([&](const IterationSummary &s){
       /* double ma = accumulate(p.x.begin(),p.x.end(),0.0,[](double a, double b) */ 

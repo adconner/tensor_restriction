@@ -115,7 +115,7 @@ void greedy_discrete(MyProblem &p, int &successes, DiscreteAttempt da, int tryli
           ((Equal *)p.GetCostFunctionForResidualBlock(rid))->sqalpha = discrete_sqalpha;
 #endif
           Solver::Summary summary;
-          solve(p,1e-3,summary);
+          solve(p,summary,1e-3,100);
           tries++;
           if (summary.final_cost <= std::max(better_frac*icost,solved_fine) 
               && *max_element(p.x.begin(),p.x.end()) < max_elem) { // improved or good enough
@@ -269,7 +269,7 @@ void greedy_discrete_pairs(MyProblem &p, const int trylimit) {
       } else {
         Solver::Summary summary;
         ((LinearCombination*)p.p.GetCostFunctionForResidualBlock(rid))->sqalpha = discrete_sqalpha;
-        solve(p,1e-3,summary);
+        solve(p,summary,1e-3,100);
         ((LinearCombination*)p.p.GetCostFunctionForResidualBlock(rid))->sqalpha = 1.0;
         tries++; 
         if (summary.final_cost <= std::max(better_frac*icost,solved_fine)) {

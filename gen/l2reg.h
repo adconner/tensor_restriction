@@ -12,7 +12,8 @@ enum MyTerminationType {
   UNKNOWN
 };
 
-MyTerminationType solve(MyProblem &p, double relftol, Solver::Summary &summary);
+MyTerminationType solve(MyProblem &p, Solver::Summary &summary, 
+    double relftol=1e-4, int max_num_iterations=1000);
 MyTerminationType l2_reg_search(MyProblem &problem,
     double target_relative_decrease, double relftol, bool stop_on_br = true);
 double minimize_max_abs(MyProblem &problem, double eps=1e-3, 
