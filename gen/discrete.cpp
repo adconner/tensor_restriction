@@ -1,7 +1,7 @@
 #include "discrete.h"
 #include "l2reg.h"
 
-#define EQ_DISCRETE
+/* #define EQ_DISCRETE */
 const double discrete_sqalpha = 1e4;
 
 class Equal : public SizedCostFunction<MULT,MULT> {
@@ -26,8 +26,7 @@ class Equal : public SizedCostFunction<MULT,MULT> {
     double sqalpha;
 };
 
-void greedy_discrete(Problem &p, double *x, 
-    const Solver::Options & opts, int &successes, DiscreteAttempt da, int trylimit) {
+void greedy_discrete(MyProblem &p, int &successes, DiscreteAttempt da, int trylimit) {
   auto get_target = [&](cx cur) {
     // if a search over only reals, the real part of the target is used
     if (da == DA_ZERO || abs(cur) < 1e-10) return cx(0.0);
@@ -57,7 +56,7 @@ void greedy_discrete(Problem &p, double *x,
   while (true) {
     vector<tuple<double,cx,int> > vals(N);
     for (int i=0; i<N; ++i) {
-      cx cur = MULT == 1 ? cx(x[i]) : cx(x[i*MULT],x[i*MULT+1]);
+      cx cur = MULT == 1 ? cx(p.x[i]) : cx(p.x[i*MULT],p.x[i*MULT+1]);
       cx target = get_target(cur);
       get<0>(vals[i]) = std::abs(cur - target);
       get<1>(vals[i]) = target;
@@ -76,11 +75,11 @@ void greedy_discrete(Problem &p, double *x,
         };
         return key(a) < key(b);
     });
-    vector<double> sav(x,x+N*MULT);
+    vector<double> sav(p.x.begin(),p.x.end());
     for (int i=0; i<N; ++i) {
       double cost; cx target; int xi; tie(cost,target,xi) = vals[i];
-      if (!p.IsParameterBlockConstant(x+MULT*xi)) {
-        double icost; p.Evaluate(Problem::EvaluateOptions(),&icost,0,0,0);
+      if (p.variable_mask[xi]) {
+        double icost; p.p.Evaluate(Problem::EvaluateOptions(),&icost,0,0,0);
         if (verbose) {
           /* cout << icost << " "; */
           cout << "successes " << successes
@@ -96,11 +95,11 @@ void greedy_discrete(Problem &p, double *x,
 #ifdef EQ_DISCRETE
         auto rid = p.AddResidualBlock(new Equal(target,1.0), NULL, {x+MULT*xi});
 #else
-        x[xi*MULT] = target.real();
-        if (MULT == 2) x[xi*MULT + 1] = target.imag();
-        p.SetParameterBlockConstant(x+MULT*xi);
+        p.x[xi*MULT] = target.real();
+        if (MULT == 2) p.x[xi*MULT + 1] = target.imag();
+        set_value_constant(p,xi);
 #endif
-        double mcost; p.Evaluate(Problem::EvaluateOptions(),&mcost,0,0,0);
+        double mcost; p.p.Evaluate(Problem::EvaluateOptions(),&mcost,0,0,0);
         if (mcost < std::max(better_frac*icost,solved_fine)) {
           if (verbose) cout << " success free " << icost << endl;
 #ifdef EQ_DISCRETE
@@ -116,10 +115,10 @@ void greedy_discrete(Problem &p, double *x,
           ((Equal *)p.GetCostFunctionForResidualBlock(rid))->sqalpha = discrete_sqalpha;
 #endif
           Solver::Summary summary;
-          Solve(opts,&p,&summary);
+          solve(p,1e-3,summary);
           tries++;
           if (summary.final_cost <= std::max(better_frac*icost,solved_fine) 
-              && *max_element(x,x+N*MULT) < max_elem) { // improved or good enough
+              && *max_element(p.x.begin(),p.x.end()) < max_elem) { // improved or good enough
             if (verbose) cout << " success " << summary.iterations.size() - 1
                 << " iterations " << summary.final_cost << endl;
 #ifdef EQ_DISCRETE
@@ -129,8 +128,9 @@ void greedy_discrete(Problem &p, double *x,
             p.RemoveResidualBlock(rid);
 #endif
             successes++;
-            l2_reg_refine(p,x,opts);
-            logsol(x,"out_partial_sparse.txt");
+            minimize_max_abs(p,1e-1);
+            /* l2_reg_search(...) */
+            logsol(p,"out_partial_sparse.txt");
             goto found;
           }
           if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
@@ -138,10 +138,10 @@ void greedy_discrete(Problem &p, double *x,
 #ifdef EQ_DISCRETE
           p.RemoveResidualBlock(rid);
 #else
-          p.SetParameterBlockVariable(x+MULT*xi);
+          set_value_variable(p,xi);
 #endif
           fails[xi]++;
-          copy(sav.begin(),sav.end(),x);
+          copy(sav.begin(),sav.end(),p.x.begin());
           if (tries >= trylimit) break;
         }
       }
@@ -186,13 +186,12 @@ class LinearCombination : public SizedCostFunction<MULT,MULT,MULT> {
     double sqalpha;
 };
 
-void greedy_discrete_pairs(Problem &p, double *x, 
-    const Solver::Options & opts, const int trylimit) {
+void greedy_discrete_pairs(MyProblem &p, const int trylimit) {
   int successes = 0; // not from outside because these dont stack with outside
   map<int,int> vix;
   vector<int> vs;
   for (int i=0; i<N; ++i) {
-    if (!p.IsParameterBlockConstant(x+MULT*i)) {
+    if (p.variable_mask[i]) {
       vix[i] = vs.size();
       vs.push_back(i);
     }
@@ -221,7 +220,7 @@ void greedy_discrete_pairs(Problem &p, double *x,
     map<int, cx> vals;
     for (int i=0; i<vs.size(); ++i) {
       int j = find(i);
-      vals[j] = MULT == 1 ? cx(x[i]) : cx(x[j*MULT],x[j*MULT+1]);
+      vals[j] = MULT == 1 ? cx(p.x[i]) : cx(p.x[j*MULT],p.x[j*MULT+1]);
     }
 
     vector<tuple<double,int,int,double,double> > diffs;
@@ -240,7 +239,7 @@ void greedy_discrete_pairs(Problem &p, double *x,
     int mid = min(skip,(int)diffs.size());
     partial_sort(diffs.begin(), diffs.begin() + mid, diffs.end());
 
-    vector<double> sav(x,x+N*MULT);
+    vector<double> sav(p.x.begin(),p.x.end());
     for (int ii=0; ii<diffs.size(); ++ii) {
       if (ii == mid) {
         mid += skip; mid = min(mid,(int)diffs.size());
@@ -250,7 +249,7 @@ void greedy_discrete_pairs(Problem &p, double *x,
 
       const auto &curdiff = diffs[ii];
       double diff, alpha, beta; int i,j; tie(diff,i,j,alpha,beta) = curdiff;
-      double icost; p.Evaluate(Problem::EvaluateOptions(),&icost,0,0,0);
+      double icost; p.p.Evaluate(Problem::EvaluateOptions(),&icost,0,0,0);
       if (verbose) {
         cout << "successes " << successes 
           << " rem " << (trylimit - tries)
@@ -259,8 +258,9 @@ void greedy_discrete_pairs(Problem &p, double *x,
           << beta << "*x[" << j << "] = 0...";
         cout.flush();
       }
-      auto rid = p.AddResidualBlock(new LinearCombination(alpha,beta), NULL, {x+MULT*i, x+MULT*j});
-      double mcost; p.Evaluate(Problem::EvaluateOptions(),&mcost,0,0,0);
+      auto rid = p.p.AddResidualBlock(new LinearCombination(alpha,beta), NULL, 
+          {p.x.data()+MULT*i, p.x.data()+MULT*j});
+      double mcost; p.p.Evaluate(Problem::EvaluateOptions(),&mcost,0,0,0);
       if (mcost < std::max(better_frac*icost,solved_fine)) {
         if (verbose) cout << " success free " << diff << endl;
         unio(i,j);
@@ -268,23 +268,23 @@ void greedy_discrete_pairs(Problem &p, double *x,
         goto found;
       } else {
         Solver::Summary summary;
-        ((LinearCombination*)p.GetCostFunctionForResidualBlock(rid))->sqalpha = discrete_sqalpha;
-        Solve(opts,&p,&summary);
-        ((LinearCombination*)p.GetCostFunctionForResidualBlock(rid))->sqalpha = 1.0;
+        ((LinearCombination*)p.p.GetCostFunctionForResidualBlock(rid))->sqalpha = discrete_sqalpha;
+        solve(p,1e-3,summary);
+        ((LinearCombination*)p.p.GetCostFunctionForResidualBlock(rid))->sqalpha = 1.0;
         tries++; 
         if (summary.final_cost <= std::max(better_frac*icost,solved_fine)) {
           if (verbose) cout << " success " << summary.iterations.size() - 1
             << " iterations " << summary.final_cost << endl;
           unio(i,j);
           successes++;
-          l2_reg_refine(p,x,opts);
-          logsol(x,"out_partial_sparse.txt");
+          minimize_max_abs(p,1e-1);
+          logsol(p,"out_partial_sparse.txt");
           goto found;
         }
         if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
           << summary.final_cost << endl;
-        p.RemoveResidualBlock(rid);
-        copy(sav.begin(),sav.end(),x);
+        p.p.RemoveResidualBlock(rid);
+        copy(sav.begin(),sav.end(),p.x.begin());
         if (tries >= trylimit) break;
       }
     }
@@ -294,118 +294,121 @@ found:;
   }
 }
 
-class ContainedOnLine : public SizedCostFunction<1,MULT> {
-  public:
-    ContainedOnLine(cx _a, double _sqalpha=1.0) : a(_a), sqalpha(_sqalpha) {}
-    bool Evaluate(const double* const* x,
-        double* residuals,
-        double** jacobians) const {
-      assert(MULT == 2);
-      residuals[0] = sqalpha*(x[0][0]*a.imag() - x[0][1]*a.real());
-      if (jacobians) {
-        if (jacobians[0]) {
-          jacobians[0][0] = sqalpha*a.imag();
-          jacobians[0][1] = -sqalpha*a.real();
-        }
-      }
-      return true;
-    }
-    cx a;
-    double sqalpha;
-};
 
-void greedy_discrete_lines(Problem &p, double *x, 
-    const Solver::Options & opts, int ei, int trylimit) {
-  assert(MULT == 2);
-  auto get_target = [&](cx cur) {
-    vector<cx> targets(ei%2 ? ei : ei/2);
-    double pi = std::atan(1)*4;
-    for (int i=0; i < targets.size() ; ++i) {
-      targets[i] = cx(std::cos(2*pi*i/ei),std::sin(2*pi*i/ei));
-    }
-    double dist = 1e15;
-    cx target = cx(0);
-    for (cx a: targets) {
-      double curdist = std::abs(a.imag()*cur.real()-a.real()*cur.imag());
-      if (curdist < dist) {
-        dist = curdist;
-        target = a;
-      }
-    }
-    return target;
-  };
-  vector<int> fails(N);
-  int tries = 0;
-  set<int> successes;
-  while (true) {
-    vector<tuple<double,cx,int> > vals(N);
-    for (int i=0; i<N; ++i) {
-      cx cur = cx(x[i*MULT],x[i*MULT+1]);
-      cx target = get_target(cur);
-      get<0>(vals[i]) = std::abs(target.imag()*cur.real()-target.real()*cur.imag());
-      get<1>(vals[i]) = target;
-      get<2>(vals[i]) = i;
-    }
-    sort(vals.begin(),vals.end(),[&](const auto &a,const auto &b) {
-        auto key = [&](const auto &a) {
-          double cost; cx target; int i; tie(cost,target,i) = a;
-          return make_tuple(!(cost < 1e-13), fails[i], 
-              /* (i % 25 == 0), */
-              /* ((i % 5 == 0) || ((i / 5) % 5 == 0)), */
-              /* ! (i % 25 == 0), */
-              /* ! ((i % 5 == 0) || ((i / 5) % 5 == 0)), */
-              /* i, */ 
-              cost );
-        };
-        return key(a) < key(b);
-    });
-    vector<double> sav(x,x+N*MULT);
-    for (int i=0; i<N; ++i) {
-      double cost; cx target; int xi; tie(cost,target,xi) = vals[i];
-      if (!p.IsParameterBlockConstant(x+MULT*xi) && !successes.count(xi)) {
-        double icost; p.Evaluate(Problem::EvaluateOptions(),&icost,0,0,0);
-        if (verbose) {
-          /* cout << icost << " "; */
-          cout << "successes " << successes.size()
-            << " fails " << std::accumulate(fails.begin(),fails.end(),0)
-            << " lfails " << fails[xi]
-            << " setting " << target.imag() << "*x[" << MULT*xi << "] + "
-            << -target.real() << "*x[" << MULT*xi + 1 << "] = 0...";
-          cout.flush();
-        }
-        x[xi*MULT] = target.real();
+// havnt ported below to new rewrite
 
-        auto rid = p.AddResidualBlock(new ContainedOnLine(target), NULL, {x+MULT*xi});
-        double mcost; p.Evaluate(Problem::EvaluateOptions(),&mcost,0,0,0);
-        if (mcost < std::max(better_frac*icost,solved_fine)) {
-          if (verbose) cout << " success free " << mcost << endl;
-          successes.insert(xi);
-          goto found;
-        } else {
-          Solver::Summary summary;
-          ((ContainedOnLine*)p.GetCostFunctionForResidualBlock(rid))->sqalpha = discrete_sqalpha;
-          Solve(opts,&p,&summary);
-          ((ContainedOnLine*)p.GetCostFunctionForResidualBlock(rid))->sqalpha = 1.0;
-          tries++; 
-          if (summary.final_cost <= std::max(better_frac*icost,solved_fine)) {
-            if (verbose) cout << " success " << summary.iterations.size() - 1
-              << " iterations " << summary.final_cost << endl;
-            successes.insert(xi);
-            l2_reg_refine(p,x,opts);
-            logsol(x,"out_partial_sparse.txt");
-            goto found;
-          }
-          if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
-            << summary.final_cost << endl;
-          fails[xi]++;
-          p.RemoveResidualBlock(rid);
-          copy(sav.begin(),sav.end(),x);
-          if (tries >= trylimit) break;
-        }
-      }
-    }
-    break;
-found:;
-      if (tries >= trylimit) break;
-  }
-}
+/* class ContainedOnLine : public SizedCostFunction<1,MULT> { */
+/*   public: */
+/*     ContainedOnLine(cx _a, double _sqalpha=1.0) : a(_a), sqalpha(_sqalpha) {} */
+/*     bool Evaluate(const double* const* x, */
+/*         double* residuals, */
+/*         double** jacobians) const { */
+/*       assert(MULT == 2); */
+/*       residuals[0] = sqalpha*(x[0][0]*a.imag() - x[0][1]*a.real()); */
+/*       if (jacobians) { */
+/*         if (jacobians[0]) { */
+/*           jacobians[0][0] = sqalpha*a.imag(); */
+/*           jacobians[0][1] = -sqalpha*a.real(); */
+/*         } */
+/*       } */
+/*       return true; */
+/*     } */
+/*     cx a; */
+/*     double sqalpha; */
+/* }; */
+
+/* void greedy_discrete_lines(Problem &p, double *x, */ 
+/*     const Solver::Options & opts, int ei, int trylimit) { */
+/*   assert(MULT == 2); */
+/*   auto get_target = [&](cx cur) { */
+/*     vector<cx> targets(ei%2 ? ei : ei/2); */
+/*     double pi = std::atan(1)*4; */
+/*     for (int i=0; i < targets.size() ; ++i) { */
+/*       targets[i] = cx(std::cos(2*pi*i/ei),std::sin(2*pi*i/ei)); */
+/*     } */
+/*     double dist = 1e15; */
+/*     cx target = cx(0); */
+/*     for (cx a: targets) { */
+/*       double curdist = std::abs(a.imag()*cur.real()-a.real()*cur.imag()); */
+/*       if (curdist < dist) { */
+/*         dist = curdist; */
+/*         target = a; */
+/*       } */
+/*     } */
+/*     return target; */
+/*   }; */
+/*   vector<int> fails(N); */
+/*   int tries = 0; */
+/*   set<int> successes; */
+/*   while (true) { */
+/*     vector<tuple<double,cx,int> > vals(N); */
+/*     for (int i=0; i<N; ++i) { */
+/*       cx cur = cx(x[i*MULT],x[i*MULT+1]); */
+/*       cx target = get_target(cur); */
+/*       get<0>(vals[i]) = std::abs(target.imag()*cur.real()-target.real()*cur.imag()); */
+/*       get<1>(vals[i]) = target; */
+/*       get<2>(vals[i]) = i; */
+/*     } */
+/*     sort(vals.begin(),vals.end(),[&](const auto &a,const auto &b) { */
+/*         auto key = [&](const auto &a) { */
+/*           double cost; cx target; int i; tie(cost,target,i) = a; */
+/*           return make_tuple(!(cost < 1e-13), fails[i], */ 
+/*               /1* (i % 25 == 0), *1/ */
+/*               /1* ((i % 5 == 0) || ((i / 5) % 5 == 0)), *1/ */
+/*               /1* ! (i % 25 == 0), *1/ */
+/*               /1* ! ((i % 5 == 0) || ((i / 5) % 5 == 0)), *1/ */
+/*               /1* i, *1/ */ 
+/*               cost ); */
+/*         }; */
+/*         return key(a) < key(b); */
+/*     }); */
+/*     vector<double> sav(x,x+N*MULT); */
+/*     for (int i=0; i<N; ++i) { */
+/*       double cost; cx target; int xi; tie(cost,target,xi) = vals[i]; */
+/*       if (!p.IsParameterBlockConstant(x+MULT*xi) && !successes.count(xi)) { */
+/*         double icost; p.Evaluate(Problem::EvaluateOptions(),&icost,0,0,0); */
+/*         if (verbose) { */
+/*           /1* cout << icost << " "; *1/ */
+/*           cout << "successes " << successes.size() */
+/*             << " fails " << std::accumulate(fails.begin(),fails.end(),0) */
+/*             << " lfails " << fails[xi] */
+/*             << " setting " << target.imag() << "*x[" << MULT*xi << "] + " */
+/*             << -target.real() << "*x[" << MULT*xi + 1 << "] = 0..."; */
+/*           cout.flush(); */
+/*         } */
+/*         x[xi*MULT] = target.real(); */
+
+/*         auto rid = p.AddResidualBlock(new ContainedOnLine(target), NULL, {x+MULT*xi}); */
+/*         double mcost; p.Evaluate(Problem::EvaluateOptions(),&mcost,0,0,0); */
+/*         if (mcost < std::max(better_frac*icost,solved_fine)) { */
+/*           if (verbose) cout << " success free " << mcost << endl; */
+/*           successes.insert(xi); */
+/*           goto found; */
+/*         } else { */
+/*           Solver::Summary summary; */
+/*           ((ContainedOnLine*)p.GetCostFunctionForResidualBlock(rid))->sqalpha = discrete_sqalpha; */
+/*           Solve(opts,&p,&summary); */
+/*           ((ContainedOnLine*)p.GetCostFunctionForResidualBlock(rid))->sqalpha = 1.0; */
+/*           tries++; */ 
+/*           if (summary.final_cost <= std::max(better_frac*icost,solved_fine)) { */
+/*             if (verbose) cout << " success " << summary.iterations.size() - 1 */
+/*               << " iterations " << summary.final_cost << endl; */
+/*             successes.insert(xi); */
+/*             l2_reg_refine(p,x,opts); */
+/*             logsol(x,"out_partial_sparse.txt"); */
+/*             goto found; */
+/*           } */
+/*           if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations " */
+/*             << summary.final_cost << endl; */
+/*           fails[xi]++; */
+/*           p.RemoveResidualBlock(rid); */
+/*           copy(sav.begin(),sav.end(),x); */
+/*           if (tries >= trylimit) break; */
+/*         } */
+/*       } */
+/*     } */
+/*     break; */
+/* found:; */
+/*       if (tries >= trylimit) break; */
+/*   } */
+/* } */

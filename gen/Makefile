@@ -1,5 +1,5 @@
 # CFLAGS=-g -fsanitize=address
-CFLAGS=-O3 -ffast-math -march=native
+CFLAGS=-g -O3 -ffast-math -march=native
 # CFLAGS=-g
 CXXFLAGS=-std=c++14 -I/usr/include/eigen3 $(shell pkg-config --cflags clp) $(CFLAGS)
 LDFLAGS=-llapacke $(shell pkg-config --libs clp) -lceres -lcxsparse -lcholmod -lumfpack -lamd -lcamd -lcolamd -lccolamd -lbtf -lsuitesparseconfig -lmetis -llapack -lopenblas -lglog -lomp -pthread  $(CXXFLAGS)
@@ -8,7 +8,7 @@ CXX=clang++
 
 # .SUFFIXES:
 
-ofiles=initial.o l2reg.o util.o opts.o
+ofiles=initial.o l2reg.o util.o opts.o discrete.o
 ofiles+=$(sort $(patsubst %.c,%.o,$(wildcard gen/*.c)))
 ofiles+=$(sort $(patsubst %.cpp,%.o,$(wildcard gen/*.cpp)))
 

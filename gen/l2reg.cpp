@@ -3,6 +3,48 @@
 #include <algorithm>
 #include <functional>
 
+typedef function<MyTerminationType(const IterationSummary&)> upf;
+
+class FunctorCallback : public IterationCallback {
+  public:
+    FunctorCallback(upf f) : f_(f) {}
+    CallbackReturnType operator()(const IterationSummary& summary) {
+      termination_ = f_(summary);
+      return termination_ == CONTINUE ? SOLVER_CONTINUE : SOLVER_TERMINATE_SUCCESSFULLY;
+    }
+
+    upf f_;
+    MyTerminationType termination_;
+};
+
+MyTerminationType solve(MyProblem &p, double relftol, Solver::Summary &summary) {
+  Solver::Options options;
+  solver_opts(options);
+  options.function_tolerance = 1e-30;
+  options.parameter_tolerance = 1e-30;
+  options.gradient_tolerance = 1e-30;
+  options.max_num_iterations = 1000;
+
+  unique_ptr<FunctorCallback> callback(new FunctorCallback([&](const IterationSummary &s){
+      /* double ma = accumulate(p.x.begin(),p.x.end(),0.0,[](double a, double b) */ 
+      /*     {return max(a,std::abs(b));} ); */ 
+      double relative_decrease = s.cost_change / s.cost;
+      if (s.cost < solved_fine) {
+        return SOLUTION;
+      }
+      if (relative_decrease > 0 && relative_decrease < relftol) {
+        return s.cost < 1e-2 ? BORDER_LIKELY : NO_SOLUTION;
+      }
+      return CONTINUE;
+    }));
+  options.update_state_every_iteration = true;
+  options.callbacks.push_back(callback.get());
+
+  Solve(options, &p.p, &summary);
+
+  return callback->termination_ == CONTINUE ? UNKNOWN : callback->termination_;
+}
+
 struct L2Regularization : public CostFunction {
   L2Regularization(int block_size, double *sqalpha, double *b) : 
       block_size_(block_size), sqalpha_(sqalpha), b_(b) {
@@ -49,20 +91,6 @@ struct L2Regularization : public CostFunction {
   double *b_;
 };
 
-typedef function<MyTerminationType(const IterationSummary&)> upf;
-
-class L2RegCallback : public IterationCallback {
-  public:
-    L2RegCallback(upf f) : f_(f) {}
-    CallbackReturnType operator()(const IterationSummary& summary) {
-      termination_ = f_(summary);
-      return termination_ == CONTINUE ? SOLVER_CONTINUE : SOLVER_TERMINATE_SUCCESSFULLY;
-    }
-
-    upf f_;
-    MyTerminationType termination_;
-};
-
 MyTerminationType l2_reg(MyProblem &p, const Solver::Options &opts, double *sqalpha, double *b, upf f) {
   vector<ResidualBlockId> rids;
   for (int i=0; i<BLOCKS; ++i) {
@@ -71,7 +99,7 @@ MyTerminationType l2_reg(MyProblem &p, const Solver::Options &opts, double *sqal
           ,NULL,p.x.data()+MULT*BBOUND[i]));
   }
 
-  unique_ptr<L2RegCallback> callback(new L2RegCallback(f));
+  unique_ptr<FunctorCallback> callback(new FunctorCallback(f));
   Solver::Options options(opts);
   options.update_state_every_iteration = true;
   options.callbacks.push_back(callback.get());
@@ -162,7 +190,7 @@ double minimize_max_abs(MyProblem &p, double eps, double step_mult, double relft
   options.parameter_tolerance = 1e-30;
   options.gradient_tolerance = 1e-30;
   options.max_num_iterations = 10000;
-  options.minimizer_progress_to_stdout = true;
+  /* options.minimizer_progress_to_stdout = true; */
 
   double lo = 0.0;
   double hi = accumulate(p.x.begin(),p.x.end(),0.0,[](double a, double b) 
@@ -176,7 +204,7 @@ double minimize_max_abs(MyProblem &p, double eps, double step_mult, double relft
     }
   }
   while (hi-lo > eps) {
-    cout << lo << endl << hi << endl;
+    /* cout << lo << endl << hi << endl; */
     vector<double> sav(p.x.begin(),p.x.end());
     for (int i=0; i<b.size(); ++i)
       if (b[i] != 0.0) 

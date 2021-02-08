@@ -12,6 +12,7 @@
 #include "initial.h"
 #include "l2reg.h"
 #include "problem.h"
+#include "discrete.h"
 
 using namespace ceres;
 using namespace std;
@@ -36,7 +37,7 @@ int main(int argc, const char** argv) {
   cout << term << endl;
 
   /* if (term == SOLUTION || term == BORDER_LIKELY) { */
-  /*   logsol(x,"out.txt"); */
+  /*   logsol(p,"out.txt"); */
   /*   return 0; */
   /* } */
   /* return 1; */
@@ -47,10 +48,25 @@ int main(int argc, const char** argv) {
   /*   sparsify(p, x, 1.0, 1e-4); */
   /*   sparsify(p, x, 1.0, 1e-4); */
   /*   cout << "ma " << ma << endl; */
-  /*   logsol(x,"out.txt"); */
+  /*   logsol(p,"out.txt"); */
   /*   return 0; */
   /* } */
   /* return 1; */
+
+  if (term == SOLUTION) {
+    logsol(p,"out_dense.txt");
+    minimize_max_abs(p, 1e-1);
+    /* sparsify(p, x, 1.0, 1e-4); */
+    int successes = 0;
+    greedy_discrete(p, successes, DA_ZERO, N);
+    greedy_discrete(p, successes, DA_E3, N);
+    /* greedy_discrete_pairs(p, N*100); */
+    double ma = minimize_max_abs(p);
+    cout << "ma " << ma << endl;
+    logsol(p,"out.txt");
+    return 0;
+  }
+  return 1;
 
   logsol(p,"out.txt");
   return 0;
