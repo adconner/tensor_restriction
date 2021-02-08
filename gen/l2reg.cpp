@@ -211,7 +211,7 @@ double minimize_max_abs(MyProblem &p, double eps, double step_mult, double relft
     }
   }
   while (hi-lo > eps) {
-    /* cout << lo << endl << hi << endl; */
+    /* cout << lo << " " << hi << endl; */
     vector<double> sav(p.x.begin(),p.x.end());
     for (int i=0; i<b.size(); ++i)
       if (b[i] != 0.0) 
