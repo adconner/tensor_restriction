@@ -6,6 +6,7 @@
 #include <deque>
 #include <random>
 #include "opts.h"
+#include "problem.h"
 
 using namespace std;
 using namespace ceres;
@@ -13,6 +14,8 @@ typedef complex<double> cx;
 
 extern mt19937 rng;
 
-void logsol(double *x, string fname);
+void logsol(const MyProblem &p, string fname);
+void set_value_variable(MyProblem &p, int i);
+void set_value_constant(MyProblem &p, int i);
 
 #endif

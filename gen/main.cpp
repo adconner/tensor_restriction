@@ -11,6 +11,7 @@
 #include "util.h"
 #include "initial.h"
 #include "l2reg.h"
+#include "problem.h"
 
 using namespace ceres;
 using namespace std;
@@ -22,25 +23,35 @@ int main(int argc, const char** argv) {
   rng.seed(rd());
   /* rng.seed(8); */
 
-  double x[MULT*N];
-
   Problem::Options popts;
   popts.enable_fast_removal = true;
-  Problem problem(popts);
+  MyProblem p(popts,N);
   for (int i=0; i<M; ++i) {
-    AddToProblem(problem,x,i);
+    AddToProblem(p.p,p.x.data(),i);
   }
 
-  fill_initial(x,problem,argc>1 ? argv[1] : "");
+  fill_initial(p,argc>1 ? argv[1] : "");
 
-  MyTerminationType term = l2_reg_search(problem, x, 1e-2, 1e-4);
+  MyTerminationType term = l2_reg_search(p, 1e-2, 1e-4);
+  cout << term << endl;
 
-  if (term == SOLUTION) {
-    double ma = minimize_max_abs(problem, x, 1e-3, 0.8, 1e-4);
-    sparsify(problem, x, 1.0, 1e-4);
-    cout << "ma " << ma << endl;
-  }
+  /* if (term == SOLUTION || term == BORDER_LIKELY) { */
+  /*   logsol(x,"out.txt"); */
+  /*   return 0; */
+  /* } */
+  /* return 1; */
 
-  logsol(x,"out.txt");
+  /* if (term == SOLUTION) { */
+  /*   logsol(x,"out_dense.txt"); */
+  /*   double ma = minimize_max_abs(p, x, 1e-3, 0.8, 1e-4); */
+  /*   sparsify(p, x, 1.0, 1e-4); */
+  /*   sparsify(p, x, 1.0, 1e-4); */
+  /*   cout << "ma " << ma << endl; */
+  /*   logsol(x,"out.txt"); */
+  /*   return 0; */
+  /* } */
+  /* return 1; */
+
+  logsol(p,"out.txt");
   return 0;
 }

@@ -45,16 +45,16 @@ vi combination(int ix, const vi &mi, const vi &ma, const vi &costs, int cost, co
   return res;
 }
 
-void fill_initial(double *x, Problem &problem, string fname) {
+void fill_initial(MyProblem &p, string fname) {
   /* srand(time(0)); */
   if (fname.empty()) {
     normal_distribution<> dist(0,0.4);
-    generate_n(x,MULT*N,[&] {return dist(rng);});
-    /* generate_n(x,MULT*N,[&] {return 1.0 - 2*(rand() / (double)RAND_MAX);}); */
+    generate(p.x.begin(),p.x.end(),[&] {return dist(rng);});
+    /* generate(p.x.begin(),p.x.end(),[&] {return 1.0 - 2*(rand() / (double)RAND_MAX);}); */
   } else {
     ifstream in(fname);
     for (int i=0; i<MULT*N; ++i)
-      in >> x[i];
+      in >> p.x[i];
   }
 #ifdef ORBIT
   // omin omax ocost ovars oMAX TCOST
@@ -70,9 +70,9 @@ void fill_initial(double *x, Problem &problem, string fname) {
   for (int i=0, curi=0; i < OS; curi += coMAX[i] * covars[i], ++i) {
     for (int j=oix[i] * covars[i]; j < coMAX[i] * covars[i]; j += covars[i]) {
       for (int k=0; k<covars[i]; ++k) {
-        x[(curi+j+k)*MULT] = 0;
-        if (MULT == 2) x[(curi+j+k)*MULT+1] = 0;
-        problem.SetParameterBlockConstant(x+(curi+j+k)*MULT);
+        p.x[(curi+j+k)*MULT] = 0;
+        if (MULT == 2) p.x[(curi+j+k)*MULT+1] = 0;
+        set_value_constant(p,curi+j+k);
       }
     }
   }
