@@ -117,7 +117,12 @@ void greedy_discrete(MyProblem &p, int &successes, DiscreteAttempt da, int tryli
           Solver::Summary summary;
           solve(p,summary,1e-3,100);
           tries++;
-          if (summary.final_cost <= std::max(better_frac*icost,solved_fine) 
+          // If we have set constant the last variable the solver will not be
+          // called and will terminate with FAILURE and summary will be
+          // otherwise uninitialized. Don't count this as a success here if this
+          // happens (if it is good assignment it will usually be a success free)
+          if (summary.termination_type != FAILURE 
+              && summary.final_cost <= std::max(better_frac*icost,solved_fine) 
               && *max_element(p.x.begin(),p.x.end()) < max_elem) { // improved or good enough
             if (verbose) cout << " success " << summary.iterations.size() - 1
                 << " iterations " << summary.final_cost << endl;
