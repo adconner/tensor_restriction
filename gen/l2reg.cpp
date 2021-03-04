@@ -30,8 +30,12 @@ MyTerminationType solve(MyProblem &p, Solver::Summary &summary,
   options.max_num_iterations = max_num_iterations;
 
   unique_ptr<FunctorCallback> callback(new FunctorCallback([&](const IterationSummary &s){
-      /* double ma = accumulate(p.x.begin(),p.x.end(),0.0,[](double a, double b) */ 
-      /*     {return max(a,std::abs(b));} ); */ 
+      /* if (verbose) { */
+      /*   double ma = accumulate(p.x.begin(),p.x.end(),0.0,[](double a, double b) */ 
+      /*       {return max(a,std::abs(b));} ); */ 
+      /*   printf("%3d %20.15g %20.15f %10.5g\n", s.iteration,s.cost,ma,s.step_norm); */
+      /* } */
+
       double relative_decrease = s.cost_change / s.cost;
       if (s.cost < solved_fine) {
         return SOLUTION;
@@ -122,13 +126,14 @@ MyTerminationType l2_reg(MyProblem &p, const Solver::Options &opts, double *sqal
   return callback->termination_ == CONTINUE ? UNKNOWN : callback->termination_;
 }
 
-MyTerminationType l2_reg_search(MyProblem &p, double target_relative_decrease, double relftol, bool stop_on_br) {
+MyTerminationType l2_reg_search(MyProblem &p, double target_relative_decrease, 
+    double relftol, bool stop_on_br, int max_num_iterations) {
   Solver::Options options;
   solver_opts(options);
   options.function_tolerance = 1e-30;
   options.parameter_tolerance = 1e-30;
   options.gradient_tolerance = 1e-30;
-  options.max_num_iterations = 1000;
+  options.max_num_iterations = max_num_iterations;
 
   double sqalpha_mult = 0.5;
   deque<bool> recent_drop;
