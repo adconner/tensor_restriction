@@ -127,7 +127,7 @@ MyTerminationType l2_reg(MyProblem &p, const Solver::Options &opts, double *sqal
 }
 
 MyTerminationType l2_reg_search(MyProblem &p, double target_relative_decrease, 
-    double relftol, bool stop_on_br, int max_num_iterations) {
+    double relftol, bool stop_on_br, int max_num_iterations, double sqinit) {
   Solver::Options options;
   solver_opts(options);
   options.function_tolerance = 1e-30;
@@ -141,7 +141,7 @@ MyTerminationType l2_reg_search(MyProblem &p, double target_relative_decrease,
   double ma_last = 1.0;
   int consecutive_border_evidence = 0;
 
-  vector<double> sqalpha(N,0.1), b(N,0.0);
+  vector<double> sqalpha(N,sqinit), b(N,0.0);
   return l2_reg(p,options,sqalpha.data(),b.data(),
         [&] (const IterationSummary &s) {
       double relative_decrease = s.cost_change / s.cost;
@@ -150,7 +150,7 @@ MyTerminationType l2_reg_search(MyProblem &p, double target_relative_decrease,
 
       if (verbose) {
         printf("%3d %20.15g %20.15f %10.5g %-+12.6g %11.6g %20.15g %d\n",
-            s.iteration,s.cost,ma,s.step_norm,relative_decrease,sqalpha[0],s.relative_decrease,consecutive_border_evidence);
+            s.iteration,2*s.cost,ma,s.step_norm,relative_decrease,sqalpha[0],s.relative_decrease,consecutive_border_evidence);
       }
 
       if (s.cost < solved_fine) {
