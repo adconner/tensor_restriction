@@ -156,6 +156,123 @@ void greedy_discrete(MyProblem &p, int &successes, DiscreteAttempt da, int tryli
   }
 }
 
+void greedy_discrete_careful(MyProblem &p, int &successes, DiscreteAttempt da) {
+  auto get_target = [&](cx cur) {
+    // if a search over only reals, the real part of the target is used
+    if (da == DA_ZERO || abs(cur) < 1e-10) return cx(0.0);
+    vector<cx> targets;
+    if (da == DA_PM_ONE) {
+      targets = { {1.0, 0.0}, {-1.0, 0.0} };
+    } else if (da == DA_E3) {
+      targets = { {1.0,0.0}, {-0.5, 0.866025403784439}, {-0.5, -0.866025403784439} };
+      for (int i=0; i<3; ++i) {
+        targets.push_back(-targets[i]);
+      }
+      /* targets.push_back(cx(0.0)); */
+    }
+    double smallest = 1e7;
+    cx target = 0.0;
+    for (cx tar : targets) {
+      double dist = abs(cur - tar);
+      if (dist < smallest) {
+        smallest = dist;
+        target = tar;
+      }
+    }
+    return target;
+  };
+
+  double last_cost = max_abs(p);
+  vector<int> fails(N);
+  while (true) {
+    vector<tuple<double,cx,int> > vals(N);
+    for (int i=0; i<N; ++i) {
+      cx cur = MULT == 1 ? cx(p.x[i]) : cx(p.x[i*MULT],p.x[i*MULT+1]);
+      cx target = get_target(cur);
+      get<0>(vals[i]) = std::abs(cur - target);
+      get<1>(vals[i]) = target;
+      get<2>(vals[i]) = i;
+    }
+    sort(vals.begin(),vals.end(),[&](const auto &a,const auto &b) {
+        auto key = [&](const auto &a) {
+          double cost; cx target; int i; tie(cost,target,i) = a;
+          return make_tuple(!(cost < 1e-13), fails[i], 
+              cost );
+        };
+        return key(a) < key(b);
+    });
+
+    vector<tuple<double,int,vector<double> > > ok;
+    vector<double> sav(p.x.begin(),p.x.end());
+    for (int vi=0; vi<N; ++vi) {
+      double cost; cx target; int xi; tie(cost,target,xi) = vals[vi];
+    /* for (int xi=0; xi<N; ++xi) { */
+      if (!p.variable_mask[xi]) continue;
+      cout << xi;
+      /* cx cur = MULT == 1 ? cx(p.x[xi]) : cx(p.x[xi*MULT],p.x[xi*MULT+1]); */
+      /* cx target = get_target(cur); */
+
+      double icost; p.p.Evaluate(Problem::EvaluateOptions(),&icost,0,0,0);
+
+      p.x[xi*MULT] = target.real();
+      if (MULT == 2) p.x[xi*MULT + 1] = target.imag();
+      set_value_constant(p,xi);
+
+      Solver::Summary summary;
+      solve(p,summary,1e-3,100);
+
+      if (summary.termination_type != FAILURE 
+          && summary.final_cost <= std::max(better_frac*icost,solved_fine) 
+          && *max_element(p.x.begin(),p.x.end()) < max_elem) { // improved or good enough
+        minimize_max_abs(p,1e-1);
+        double cost = max_abs(p);
+        ok.push_back(make_tuple(cost,xi,p.x));
+        cout << "s ";
+        // can optionally break if a sufficiently good guy is seen to continue
+        // immediately
+        cout << cost << " ";
+        if (cost <= last_cost*1.001) break;
+      } else {
+        fails[xi]++;
+        cout << "f ";
+      }
+      cout.flush();
+
+      set_value_variable(p,xi);
+      copy(sav.begin(),sav.end(),p.x.begin());
+    }
+    if (ok.empty()) {
+      return;
+    }
+    int xi;
+    tie(last_cost,xi,p.x) = *min_element(ok.begin(),ok.end());
+    set_value_constant(p,xi);
+    logsol(p,"out_partial_sparse.txt");
+
+    int free = 0, successes = 0;
+    for (int i=0; i<N; ++i) {
+
+      if (!p.variable_mask[i]) {
+        successes++;
+        continue;
+      }
+      cx cur = MULT == 1 ? cx(p.x[i]) : cx(p.x[i*MULT],p.x[i*MULT+1]);
+      cx target = get_target(cur);
+      if (abs(cur - target) < solved_fine) {
+        p.x[i*MULT] = target.real();
+        if (MULT == 2) p.x[i*MULT + 1] = target.imag();
+        set_value_constant(p,i);
+        free++;
+        successes++;
+      }
+    }
+
+    cout << "\nsuccesses " << successes << " new max " << last_cost << " free equations " << free << endl;
+
+  }
+}
+
+
 
 
 class LinearCombination : public SizedCostFunction<MULT,MULT,MULT> {

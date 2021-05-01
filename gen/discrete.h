@@ -10,6 +10,7 @@ enum DiscreteAttempt {
 };
 void greedy_discrete(MyProblem &p, int &successes, 
     DiscreteAttempt da = DA_ZERO, int trylimit = 10);
+void greedy_discrete_careful(MyProblem &p, int &successes, DiscreteAttempt da);
 void greedy_discrete_pairs(MyProblem &p, const int trylimit = 10);
 void greedy_discrete_lines(MyProblem &p, int ei, int trylimit);
 

@@ -205,22 +205,15 @@ double minimize_max_abs(MyProblem &p, double eps, double step_mult, double relft
   /* options.minimizer_progress_to_stdout = true; */
 
   double lo = 0.0;
-  double hi = accumulate(p.x.begin(),p.x.end(),0.0,[](double a, double b) 
-      {return max(a,std::abs(b));} ); 
+  double hi = max_abs(p);
   double cur = hi*step_mult;
 
   vector<double> sqalpha(N,1.0), b(N,1.0);
-  for (int i=0; i<N; ++i) {
-    if ((MULT==1?abs(p.x[i]):abs(cx(p.x[2*i],p.x[2*i+1]))) < sqrt(solved_fine)) {
-      b[i] = 0.0;
-    }
-  }
   while (hi-lo > eps) {
     /* cout << lo << " " << hi << endl; */
     vector<double> sav(p.x.begin(),p.x.end());
     for (int i=0; i<b.size(); ++i)
-      if (b[i] != 0.0) 
-        b[i] = cur;
+      b[i] = cur;
     MyTerminationType termination = l2_reg(p,options,
         sqalpha.data(),b.data(), [&] (const IterationSummary &s) {
       double relative_decrease = s.cost_change / s.cost;
