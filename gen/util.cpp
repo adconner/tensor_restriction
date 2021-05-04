@@ -4,7 +4,7 @@
 #include <memory>
 #include <limits>
 #include <tuple>
-#include "gen/prob.h"
+#include "prob.h"
 #include "util.h"
 
 // control variables

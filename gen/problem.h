@@ -4,7 +4,7 @@
 #include "ceres/ceres.h"
 #include <vector>
 
-#include "gen/prob.h"
+#include "prob.h"
 
 using namespace std;
 using namespace ceres;
