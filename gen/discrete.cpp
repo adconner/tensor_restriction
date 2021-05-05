@@ -244,10 +244,14 @@ void greedy_discrete_careful(MyProblem &p, int &successes, DiscreteAttempt da) {
     if (ok.empty()) {
       return;
     }
-    int xi;
-    tie(last_cost,xi,p.x) = *min_element(ok.begin(),ok.end());
+    double cost; int xi; vector<double> x;
+    tie(cost,xi,x) = *min_element(ok.begin(),ok.end());
+    /* // this is situational */
+    /* if (cost > last_cost*1.001) { */
+    /*   return; */
+    /* } */
+    p.x = x;
     set_value_constant(p,xi);
-    logsol(p,"out_partial_sparse.txt");
 
     int free = 0, successes = 0;
     for (int i=0; i<N; ++i) {
@@ -267,7 +271,9 @@ void greedy_discrete_careful(MyProblem &p, int &successes, DiscreteAttempt da) {
       }
     }
 
-    cout << "\nsuccesses " << successes << " new max " << last_cost << " free equations " << free << endl;
+    logsol(p,"out_partial_sparse.txt");
+    cout << "\nsuccesses " << successes << " new max " << cost << " free equations " << free << endl;
+    last_cost = cost;
 
   }
 }
