@@ -8,7 +8,7 @@ CXX=clang++
 
 # .SUFFIXES:
 
-ofiles=initial.o l2reg.o util.o opts.o discrete.o
+ofiles=initial.o l2reg.o util.o opts.o discrete.o cholmod.o
 # ofiles+=$(sort $(patsubst %.c,%.o,$(wildcard gen/*.c)))
 # ofiles+=$(sort $(patsubst %.cpp,%.o,$(wildcard gen/*.cpp)))
 ofiles+=$(sort $(patsubst %.cpp,%.o,$(wildcard restrict/*.cpp)))
@@ -19,7 +19,7 @@ main: main.o $(ofiles)
 tight: tight.o $(ofiles)
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
-main.o: main.cpp prob.h util.h opts.h discrete.h initial.h
+main.o: main.cpp prob.h util.h opts.h discrete.h initial.h cholmod.h
 tight.o: tight.cpp prob.h util.h opts.h discrete.h initial.h
 util.o: util.cpp prob.h util.h opts.h
 discrete.o: discrete.h util.h opts.h prob.h gauss_newton.h
