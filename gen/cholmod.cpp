@@ -99,10 +99,10 @@ void levenberg_marquardt(MyProblem &p, function<bool(double,double,double)> f,
         return make_tuple(true,true,1/mu);
       }
       double rho = (icost - cost) / model_cost_change;
-      if (!f(cost,rho,mu)) {
+      bool accept_step = rho > eps;
+      if (!f(accept_step?cost:icost,rho,mu)) {
         return make_tuple(false,false,0.0);
       }
-      bool accept_step = rho > eps;
       /* printf("lm icost=%g model_cost=%g cost=%g rho=%g mu=%g accepted=%d\n",icost,model_cost_change,cost,rho,mu,(int)accept_step); */
       if (0.99 < rho && rho < 1.01) {
         mu *= 8;
