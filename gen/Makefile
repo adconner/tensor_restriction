@@ -27,6 +27,7 @@ initial.o: initial.h opts.h prob.h
 l2reg.o: l2reg.h opts.h prob.h
 gauss_newton.o: l2reg.h opts.h prob.h
 opts.o: opts.h
+cholmod.o: prob.h
 restrict/restrict.o: restrict/restrict.cpp restrict/prob.h restrict/tensor.h
 restrict/als.o: restrict/tensor.h restrict/als.h
 
