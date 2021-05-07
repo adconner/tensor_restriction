@@ -15,12 +15,12 @@ cholmod_sparse *jacobian(MyProblem &p, Problem::EvaluateOptions eopts, cholmod_c
 // from l2 regularization of the sequence of x values, which can be embedded in
 // the equations of p
 void cholmod(MyProblem &p, function<tuple<bool,bool,double>(double,double,double)> f) {
-  double icost; vector<double> crs;
+  double icost; vector<double> crs; CRSMatrix jac;
   Problem::EvaluateOptions eopts;
   eopts.parameter_blocks.clear();
   for (int i=0; i<BLOCKS; ++i)
     eopts.parameter_blocks.push_back(p.x.data()+MULT*BBOUND[i]);
-  p.p.Evaluate(eopts,&icost,&crs,0,0);
+  p.p.Evaluate(eopts,&icost,&crs,0,&jac);
 
   bool accept_step,cont; 
   double lambda[2] = {0.0,0.0};
@@ -30,7 +30,13 @@ void cholmod(MyProblem &p, function<tuple<bool,bool,double>(double,double,double
   cholmod_common c;
   cholmod_start(&c);
 
-  cholmod_sparse *jact = jacobian(p,eopts,&c);
+  // rows,cols,nnz,sorted,packed,upper lower unstructered,entry type
+  cholmod_sparse *jact = cholmod_allocate_sparse(jac.num_cols,jac.num_rows
+      ,jac.values.size(),true,true,0,CHOLMOD_REAL,&c);
+  copy(jac.rows.begin(),jac.rows.end(),(int*)jact->p);
+  copy(jac.cols.begin(),jac.cols.end(),(int*)jact->i);
+  copy(jac.values.begin(),jac.values.end(),(double*)jact->x);
+
   cholmod_factor *L = cholmod_analyze(jact,&c);
 
   cholmod_dense *rs = cholmod_allocate_dense(crs.size(),1,crs.size(),CHOLMOD_REAL,&c);
@@ -44,10 +50,11 @@ void cholmod(MyProblem &p, function<tuple<bool,bool,double>(double,double,double
   for (int i=0; i<jact->ncol; ++i) keep_jac_rows[i] = i;
 
   while (true) {
-    p.p.Evaluate(eopts,&icost,&crs,0,0);
+    p.p.Evaluate(eopts,&icost,&crs,0,&jac);
     copy(crs.begin(),crs.end(),(double*)rs->x);
-    cholmod_free_sparse(&jact,&c);
-    jact = jacobian(p,eopts,&c);
+    copy(jac.rows.begin(),jac.rows.end(),(int*)jact->p);
+    copy(jac.cols.begin(),jac.cols.end(),(int*)jact->i);
+    copy(jac.values.begin(),jac.values.end(),(double*)jact->x);
 
     double alpha[2] = {-1.0, 0.0};
     double beta[2] = {0.0, 0.0};
