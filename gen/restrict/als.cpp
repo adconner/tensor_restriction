@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cstring>
+#include <iostream>
 
 #include <lapacke.h>
 #include <cblas.h>
@@ -62,6 +63,14 @@ void als(double *x, int group, double lambda = 0.0) {
       A[i*m+base+i] = lambda;
     }
   }
-  LAPACKE_dgels(LAPACK_COL_MAJOR,'N',m,n,nrhs,A,m,B,m);
+
+  int rank = 0;
+  int jpvt[max(max(SA,SB),SC)];
+  memset(jpvt,0,s(0,SA,SB,SC)*sizeof(int));
+  LAPACKE_dgelsy(LAPACK_COL_MAJOR,m,n,nrhs,A,m,B,m,jpvt,1e-13,&rank);
+  if (rank != s(0,SA,SB,SC))
+    printf("als: rank deficient problem, n=%d, rank=%d\n",n,rank);
+  /* LAPACKE_dgels(LAPACK_COL_MAJOR,'N',m,n,nrhs,A,m,B,m); */
+
   LAPACKE_dlacpy(LAPACK_COL_MAJOR,'N',n,nrhs,B,m,x+s(0,0,TA*SA,TA*SA+TB*SB),s(0,SA,SB,SC));
 }
