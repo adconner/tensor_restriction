@@ -8,78 +8,19 @@
 using namespace ceres;
 using namespace std;
 
-cholmod_sparse *jacobian(MyProblem &p, Problem::EvaluateOptions eopts, cholmod_common *c) {
-  if (eopts.parameter_blocks.empty())
-    p.p.GetParameterBlocks(&eopts.parameter_blocks);
-  if (eopts.residual_blocks.empty())
-    p.p.GetResidualBlocks(&eopts.residual_blocks);
-
-  int nnz = 0;
-  for (auto rid : eopts.residual_blocks) {
-    vector<double*> xs;
-    p.p.GetParameterBlocksForResidualBlock(rid,&xs);
-    for (auto x : xs) {
-      if (find(eopts.parameter_blocks.begin(),eopts.parameter_blocks.end(),x) !=
-          eopts.parameter_blocks.end()) {
-        nnz += p.p.ParameterBlockLocalSize(x) *
-          p.p.GetCostFunctionForResidualBlock(rid)->num_residuals();
-      }
-    }
-  }
-  printf("nnz %d\n",nnz);
-  cholmod_triplet *jact = cholmod_allocate_triplet(N,M,nnz,0,CHOLMOD_REAL,c);
-  int ix=0;
-
-  vector<int> js;
-  int j = 0;
-  for (auto x : eopts.parameter_blocks) {
-    js.push_back(j);
-    j += p.p.ParameterBlockLocalSize(x);
-  }
-
-  int i = 0, ii = 0;
-  for (auto rid : eopts.residual_blocks) {
-    int isize = p.p.GetCostFunctionForResidualBlock(rid)->num_residuals();
-    vector<double*> xs;
-    p.p.GetParameterBlocksForResidualBlock(rid,&xs);
-    vector<double*> jacobians;
-    for (auto x : xs) {
-      auto it = find(eopts.parameter_blocks.begin(),eopts.parameter_blocks.end(),x);
-      if (it != eopts.parameter_blocks.end()) {
-        int j = js[it - eopts.parameter_blocks.begin()];
-        int jsize = p.p.ParameterBlockLocalSize(x);
-
-        jacobians.push_back( ((double*)jact->x) + ii );
-        for (int li = 0; li < isize; ++li) {
-          for (int lj = 0; lj < jsize; ++lj) {
-            ((int*)jact->i)[ii] = j + lj;
-            ((int*)jact->j)[ii] = i + li;
-            ii++;
-          }
-        }
-
-      }
-    }
-    p.p.EvaluateResidualBlock(rid,eopts.apply_loss_function,0,0,jacobians.data());
-    i += isize;
-  }
-  jact->nnz = nnz;
-  assert(ii == nnz);
-
-  return cholmod_triplet_to_sparse(jact,nnz,c);
-}
+cholmod_sparse *jacobian(MyProblem &p, Problem::EvaluateOptions eopts, cholmod_common *c);
 
 // note that the lambda of this function is the l2 regularization on dx, ie
 // should be viewed as 1/mu, where mu is the trust region radius. It is distinct
 // from l2 regularization of the sequence of x values, which can be embedded in
 // the equations of p
 void cholmod(MyProblem &p, function<tuple<bool,bool,double>(double,double,double)> f) {
-  double icost; vector<double> crs; CRSMatrix jac;
+  double icost; vector<double> crs;
   Problem::EvaluateOptions eopts;
   eopts.parameter_blocks.clear();
   for (int i=0; i<BLOCKS; ++i)
     eopts.parameter_blocks.push_back(p.x.data()+MULT*BBOUND[i]);
-  p.p.Evaluate(eopts,&icost,&crs,0,&jac);
+  p.p.Evaluate(eopts,&icost,&crs,0,0);
 
   bool accept_step,cont; 
   double lambda[2] = {0.0,0.0};
@@ -89,13 +30,7 @@ void cholmod(MyProblem &p, function<tuple<bool,bool,double>(double,double,double
   cholmod_common c;
   cholmod_start(&c);
 
-  // rows,cols,nnz,sorted,packed,upper lower unstructered,entry type
-  cholmod_sparse *jact = cholmod_allocate_sparse(jac.num_cols,jac.num_rows
-      ,jac.values.size(),true,true,0,CHOLMOD_REAL,&c);
-  copy(jac.rows.begin(),jac.rows.end(),(int*)jact->p);
-  copy(jac.cols.begin(),jac.cols.end(),(int*)jact->i);
-  copy(jac.values.begin(),jac.values.end(),(double*)jact->x);
-
+  cholmod_sparse *jact = jacobian(p,eopts,&c);
   cholmod_factor *L = cholmod_analyze(jact,&c);
 
   cholmod_dense *rs = cholmod_allocate_dense(crs.size(),1,crs.size(),CHOLMOD_REAL,&c);
@@ -105,15 +40,14 @@ void cholmod(MyProblem &p, function<tuple<bool,bool,double>(double,double,double
   cholmod_dense *dx = 0, *y = 0, *e = 0; // workspace for solve2, allocated by first call
   vector<double> oldx;
 
-  vector<int> keep_jac_rows(jac.num_rows);
-  for (int i=0; i<jac.num_rows; ++i) keep_jac_rows[i] = i;
+  vector<int> keep_jac_rows(jact->ncol);
+  for (int i=0; i<jact->ncol; ++i) keep_jac_rows[i] = i;
 
   while (true) {
-    p.p.Evaluate(eopts,&icost,&crs,0,&jac);
+    p.p.Evaluate(eopts,&icost,&crs,0,0);
     copy(crs.begin(),crs.end(),(double*)rs->x);
-    copy(jac.rows.begin(),jac.rows.end(),(int*)jact->p);
-    copy(jac.cols.begin(),jac.cols.end(),(int*)jact->i);
-    copy(jac.values.begin(),jac.values.end(),(double*)jact->x);
+    cholmod_free_sparse(&jact,&c);
+    jact = jacobian(p,eopts,&c);
 
     double alpha[2] = {-1.0, 0.0};
     double beta[2] = {0.0, 0.0};
@@ -164,7 +98,7 @@ void levenberg_marquardt(MyProblem &p, function<bool(double,double,double)> f,
       if (!f(accept_step?cost:icost,rho,mu)) {
         return make_tuple(false,false,0.0);
       }
-      /* printf("lm icost=%g model_cost=%g cost=%g rho=%g mu=%g accepted=%d\n",icost,model_cost_change,cost,rho,mu,(int)accept_step); */
+      /* printf("lm icost=%g model_cost_change=%g cost=%g rho=%g mu=%g accepted=%d\n",icost,model_cost_change,cost,rho,mu,(int)accept_step); */
       if (0.99 < rho && rho < 1.01) {
         mu *= 8;
       } else if (rho > eta1) {
@@ -198,3 +132,64 @@ void trust_region_f(MyProblem &p, function<void()> f, double relftol = 1e-3, int
 void trust_region(MyProblem &p, double relftol = 1e-3, int maxit = 200) {
   trust_region_f(p,[](){},relftol,maxit);
 }
+
+cholmod_sparse *jacobian(MyProblem &p, Problem::EvaluateOptions eopts, cholmod_common *c) {
+  if (eopts.parameter_blocks.empty())
+    p.p.GetParameterBlocks(&eopts.parameter_blocks);
+  if (eopts.residual_blocks.empty())
+    p.p.GetResidualBlocks(&eopts.residual_blocks);
+
+  int nnz = 0;
+  for (auto rid : eopts.residual_blocks) {
+    vector<double*> xs;
+    p.p.GetParameterBlocksForResidualBlock(rid,&xs);
+    for (auto x : xs) {
+      if (find(eopts.parameter_blocks.begin(),eopts.parameter_blocks.end(),x) !=
+          eopts.parameter_blocks.end()) {
+        nnz += p.p.ParameterBlockLocalSize(x) *
+          p.p.GetCostFunctionForResidualBlock(rid)->num_residuals();
+      }
+    }
+  }
+  cholmod_triplet *jact = cholmod_allocate_triplet(N,M,nnz,0,CHOLMOD_REAL,c);
+  int ix=0;
+
+  vector<int> js;
+  int j = 0;
+  for (auto x : eopts.parameter_blocks) {
+    js.push_back(j);
+    j += p.p.ParameterBlockLocalSize(x);
+  }
+
+  int i = 0, ii = 0;
+  for (auto rid : eopts.residual_blocks) {
+    int isize = p.p.GetCostFunctionForResidualBlock(rid)->num_residuals();
+    vector<double*> xs;
+    p.p.GetParameterBlocksForResidualBlock(rid,&xs);
+    vector<double*> jacobians;
+    for (auto x : xs) {
+      auto it = find(eopts.parameter_blocks.begin(),eopts.parameter_blocks.end(),x);
+      if (it != eopts.parameter_blocks.end()) {
+        int j = js[it - eopts.parameter_blocks.begin()];
+        int jsize = p.p.ParameterBlockLocalSize(x);
+
+        jacobians.push_back( ((double*)jact->x) + ii );
+        for (int li = 0; li < isize; ++li) {
+          for (int lj = 0; lj < jsize; ++lj) {
+            ((int*)jact->i)[ii] = j + lj;
+            ((int*)jact->j)[ii] = i + li;
+            ii++;
+          }
+        }
+
+      }
+    }
+    p.p.EvaluateResidualBlock(rid,eopts.apply_loss_function,0,0,jacobians.data());
+    i += isize;
+  }
+  jact->nnz = nnz;
+  assert(ii == nnz);
+
+  return cholmod_triplet_to_sparse(jact,nnz,c);
+}
+
