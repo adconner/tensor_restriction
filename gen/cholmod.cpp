@@ -8,6 +8,67 @@
 using namespace ceres;
 using namespace std;
 
+cholmod_sparse *jacobian(MyProblem &p, Problem::EvaluateOptions eopts, cholmod_common *c) {
+  if (eopts.parameter_blocks.empty())
+    p.p.GetParameterBlocks(&eopts.parameter_blocks);
+  if (eopts.residual_blocks.empty())
+    p.p.GetResidualBlocks(&eopts.residual_blocks);
+
+  int nnz = 0;
+  for (auto rid : eopts.residual_blocks) {
+    vector<double*> xs;
+    p.p.GetParameterBlocksForResidualBlock(rid,&xs);
+    for (auto x : xs) {
+      if (find(eopts.parameter_blocks.begin(),eopts.parameter_blocks.end(),x) !=
+          eopts.parameter_blocks.end()) {
+        nnz += p.p.ParameterBlockLocalSize(x) *
+          p.p.GetCostFunctionForResidualBlock(rid)->num_residuals();
+      }
+    }
+  }
+  printf("nnz %d\n",nnz);
+  cholmod_triplet *jact = cholmod_allocate_triplet(N,M,nnz,0,CHOLMOD_REAL,c);
+  int ix=0;
+
+  vector<int> js;
+  int j = 0;
+  for (auto x : eopts.parameter_blocks) {
+    js.push_back(j);
+    j += p.p.ParameterBlockLocalSize(x);
+  }
+
+  int i = 0, ii = 0;
+  for (auto rid : eopts.residual_blocks) {
+    int isize = p.p.GetCostFunctionForResidualBlock(rid)->num_residuals();
+    vector<double*> xs;
+    p.p.GetParameterBlocksForResidualBlock(rid,&xs);
+    vector<double*> jacobians;
+    for (auto x : xs) {
+      auto it = find(eopts.parameter_blocks.begin(),eopts.parameter_blocks.end(),x);
+      if (it != eopts.parameter_blocks.end()) {
+        int j = js[it - eopts.parameter_blocks.begin()];
+        int jsize = p.p.ParameterBlockLocalSize(x);
+
+        jacobians.push_back( ((double*)jact->x) + ii );
+        for (int li = 0; li < isize; ++li) {
+          for (int lj = 0; lj < jsize; ++lj) {
+            ((int*)jact->i)[ii] = j + lj;
+            ((int*)jact->j)[ii] = i + li;
+            ii++;
+          }
+        }
+
+      }
+    }
+    p.p.EvaluateResidualBlock(rid,eopts.apply_loss_function,0,0,jacobians.data());
+    i += isize;
+  }
+  jact->nnz = nnz;
+  assert(ii == nnz);
+
+  return cholmod_triplet_to_sparse(jact,nnz,c);
+}
+
 // note that the lambda of this function is the l2 regularization on dx, ie
 // should be viewed as 1/mu, where mu is the trust region radius. It is distinct
 // from l2 regularization of the sequence of x values, which can be embedded in
