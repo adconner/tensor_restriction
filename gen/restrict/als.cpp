@@ -57,7 +57,7 @@ void als(double *x, int group, double lambda) {
           case 1: cur = x[TA*SA+TB*SB+j*SC+SK[t]] * x[k*SA+SI[t]]; break;
           case 2: cur = x[j*SA+SI[t]] * x[TA*SA+k*SB+SJ[t]]; break;
         }
-        A[s(0,SI[t],SJ[t],SK[t])*m + j*s(2,TA,TB,TC) + k] += cur;
+        A[s(0,SI[t],SJ[t],SK[t])*m + j*s(2,TA,TB,TC) + k] += SV[t] * cur;
       }
     }
   }
@@ -135,7 +135,7 @@ void als_some(double *x, const vector<tuple<int,int,int> > & eqs, int group, dou
           case 1: cur = x[TA*SA+TB*SB+j*SC+SK[t]] * x[k*SA+SI[t]]; break;
           case 2: cur = x[j*SA+SI[t]] * x[TA*SA+k*SB+SJ[t]]; break;
         }
-        A[s(0,SI[t],SJ[t],SK[t])*m + jk] += cur;
+        A[s(0,SI[t],SJ[t],SK[t])*m + jk] += SV[t] * cur;
       }
     }
     if (lambda) {
