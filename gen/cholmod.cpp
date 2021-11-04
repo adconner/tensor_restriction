@@ -76,10 +76,10 @@ void cholmod(MyProblem &p, function<tuple<bool,bool,double>(double,double,double
 
     double cost; p.p.Evaluate(eopts,&cost,0,0,0);
     tie(accept_step,cont,lambda[0]) = f(icost,cost,model_cost_change);
-    if (!cont) 
-      break;
     if (!accept_step) {
       p.x = oldx;
+    if (!cont) 
+      break;
     }
 
   }
@@ -94,7 +94,7 @@ void cholmod(MyProblem &p, function<tuple<bool,bool,double>(double,double,double
   cholmod_finish(&c);
 }
 
-void levenberg_marquardt(MyProblem &p, function<bool(double,double,double)> f, 
+void levenberg_marquardt(MyProblem &p, function<bool(double,double,double,bool)> f, 
     const double eps = 0.0, const double eta1=0.90, const double eta2=0.15, double mu=32.0) {
   cholmod(p,[&](double icost, double cost, double model_cost_change) {
       if (icost == -1.0) { // first iteration
@@ -102,8 +102,8 @@ void levenberg_marquardt(MyProblem &p, function<bool(double,double,double)> f,
       }
       double rho = (icost - cost) / model_cost_change;
       bool accept_step = rho > eps;
-      if (!f(accept_step?cost:icost,rho,mu)) {
-        return make_tuple(false,false,0.0);
+      if (!f(accept_step?cost:icost,rho,mu,accept_step)) {
+        return make_tuple(accept_step,false,0.0);
       }
       /* printf("lm icost=%g model_cost_change=%g cost=%g rho=%g mu=%g accepted=%d\n",icost,model_cost_change,cost,rho,mu,(int)accept_step); */
       if (0.99 < rho && rho < 1.01) {
@@ -120,8 +120,11 @@ void levenberg_marquardt(MyProblem &p, function<bool(double,double,double)> f,
 void trust_region_f(MyProblem &p, function<void()> f, double relftol = 1e-3, int maxit = 200) {
   int it = 1;
   double icost = 1e10;
-  levenberg_marquardt(p,[&](double cost, double rho, double mu) {
-      f();
+  levenberg_marquardt(p,[&](double cost, double rho, double mu, bool accept_step) {
+      if (accept_step) { // only do user changes to state (eg, Algorithm 2 in ceres docs) 
+                         // if it will not be blown away
+        f();
+      }
       double fcost; p.p.Evaluate(Problem::EvaluateOptions(),&fcost,0,0,0);
       double ma = accumulate(p.x.begin(),p.x.end(),0.0,[](double a, double b) 
           {return max(a,std::abs(b));} ); 
