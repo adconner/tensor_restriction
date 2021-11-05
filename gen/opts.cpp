@@ -32,5 +32,6 @@ void solver_opts(Solver::Options &options) {
   options.function_tolerance = ftol;
   options.parameter_tolerance = ptol;
   options.gradient_tolerance = gtol;
+  /* options.check_gradients=true; */
 }
 

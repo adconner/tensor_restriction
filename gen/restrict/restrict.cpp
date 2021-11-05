@@ -8,10 +8,62 @@ using namespace std;
 
 struct Equation : public Eq {
   Equation(int _i, int _j, int _k) : i(_i), j(_j), k(_k) {
+#ifdef SYM
+    if (i == j && j == k) {
+      *mutable_parameter_block_sizes() = {MULT*SA};
+    } else if (i == j || j == k || i == k) {
+      *mutable_parameter_block_sizes() = {MULT*SA,MULT*SA};
+    } else {
+      *mutable_parameter_block_sizes() = {MULT*SA,MULT*SA,MULT*SA};
+    }
+#else
     *mutable_parameter_block_sizes() = {MULT*SA,MULT*SB,MULT*SC};
+#endif
     set_num_residuals(MULT);
   }
   bool Evaluate(double const* const* x, double* residuals, double** jacobians) const {
+#ifdef SYM
+    double const* _x[3];
+    double * _jacobians[3];
+    if (i == j && j == k) {
+      _x[0] = x[0]; _x[1] = x[0]; _x[2] = x[0];
+      x = _x;
+      if (jacobians) {
+        _jacobians[0] = jacobians[0];
+        _jacobians[1] = jacobians[0];
+        _jacobians[2] = jacobians[0];
+        jacobians = _jacobians;
+      }
+    } else if (i == j) {
+      _x[0] = x[0]; _x[1] = x[0]; _x[2] = x[1];
+      x = _x;
+      if (jacobians) {
+        _jacobians[0] = jacobians[0];
+        _jacobians[1] = jacobians[0];
+        _jacobians[2] = jacobians[1];
+        jacobians = _jacobians;
+      }
+    } else if (i == k) {
+      _x[0] = x[0]; _x[1] = x[1]; _x[2] = x[0];
+      x = _x;
+      if (jacobians) {
+        _jacobians[0] = jacobians[0];
+        _jacobians[1] = jacobians[1];
+        _jacobians[2] = jacobians[0];
+        jacobians = _jacobians;
+      }
+    } else if (j == k) {
+      _x[0] = x[0]; _x[1] = x[1]; _x[2] = x[1];
+      x = _x;
+      if (jacobians) {
+        _jacobians[0] = jacobians[0];
+        _jacobians[1] = jacobians[1];
+        _jacobians[2] = jacobians[1];
+        jacobians = _jacobians;
+      }
+    } 
+#endif
+
     if (jacobians) {
       if (jacobians[0])
         fill(jacobians[0],jacobians[0]+MULT*SA,0.0);
@@ -68,6 +120,7 @@ struct Equation : public Eq {
   int i,j,k;
 };
 
+#ifndef SYM
 ceres::ResidualBlockId AddToProblem(ceres::Problem &p, double *x, int eqi) {
   int k = eqi % TC; eqi /= TC;
   int j = eqi % TB; eqi /= TB;
@@ -75,6 +128,31 @@ ceres::ResidualBlockId AddToProblem(ceres::Problem &p, double *x, int eqi) {
   return p.AddResidualBlock(new Equation(i,j,k),0,
       {x+MULT*BBOUND[i],x+MULT*BBOUND[TA+j],x+MULT*BBOUND[TA+TB+k]});
 }
+#else
+ceres::ResidualBlockId AddToProblem(ceres::Problem &p, double *x, int eqi) {
+  assert(TA == TB && TB == TC);
+  assert(SA == SB && SB == SC);
+  int k = eqi % TC; eqi /= TC;
+  int j = eqi % TB; eqi /= TB;
+  int i = eqi;
+  if (i == j && j == k) {
+    return p.AddResidualBlock(new Equation(i,j,k),0,
+        x+MULT*BBOUND[i]);
+  } else if (i == j) {
+    return p.AddResidualBlock(new Equation(i,j,k),0,
+        {x+MULT*BBOUND[i],x+MULT*BBOUND[k]});
+  } else if (i == k) {
+    return p.AddResidualBlock(new Equation(i,j,k),0,
+        {x+MULT*BBOUND[i],x+MULT*BBOUND[j]});
+  } else if (j == k) {
+    return p.AddResidualBlock(new Equation(i,j,k),0,
+        {x+MULT*BBOUND[i],x+MULT*BBOUND[j]});
+  } else {
+    return p.AddResidualBlock(new Equation(i,j,k),0,
+        {x+MULT*BBOUND[i],x+MULT*BBOUND[j],x+MULT*BBOUND[k]});
+  }
+}
+#endif
 
 void SetParameterBlockOrdering(ceres::ParameterBlockOrdering &pbo, double *x) {
 }

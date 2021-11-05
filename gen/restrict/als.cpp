@@ -2,6 +2,7 @@
 #include <cstring>
 #include <iostream>
 #include <map>
+#include <cassert>
 
 #include <lapacke.h>
 #include <cblas.h>
@@ -78,6 +79,17 @@ void als(double *x, int group, double lambda) {
   LAPACKE_dlacpy(LAPACK_COL_MAJOR,'N',n,nrhs,B,m,x+s(0,0,TA*SA,TA*SA+TB*SB),s(0,SA,SB,SC));
 }
 
+void als_sym(double *x, double lambda, double step) {
+  assert(TA == TB && TB == TC && SA == SB && SB == SC);
+  double tripx[3*SA*TA];
+  copy(x,x+SA*TA,tripx);
+  copy(x,x+SA*TA,tripx+SA*TA);
+  copy(x,x+SA*TA,tripx+2*SA*TA);
+  als(tripx,0,lambda);
+  for (int i=0; i<SA*TA; ++i) {
+    x[i] = x[i] + step*(tripx[i] - x[i]);
+  }
+}
 
 void als_some(double *x, const vector<tuple<int,int,int> > & eqs, int group, double lambda) {
   // computes the same as als, but allows some equations to be ignored (only
@@ -157,5 +169,17 @@ void als_some(double *x, const vector<tuple<int,int,int> > & eqs, int group, dou
         x[s(0,0,TA*SA,TA*SA+TB*SB) +it->second[j]*n +i ] = B[j*ldb + i];
       }
     }
+  }
+}
+
+void als_sym_some(double *x, const vector<tuple<int,int,int> > & eqs, double lambda, double step) {
+  assert(TA == TB && TB == TC && SA == SB && SB == SC);
+  double tripx[3*SA*TA];
+  copy(x,x+SA*TA,tripx);
+  copy(x,x+SA*TA,tripx+SA*TA);
+  copy(x,x+SA*TA,tripx+2*SA*TA);
+  als_some(tripx,eqs,0,lambda);
+  for (int i=0; i<SA*TA; ++i) {
+    x[i] = x[i] + step*(tripx[i] - x[i]);
   }
 }
