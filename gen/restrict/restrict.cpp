@@ -66,11 +66,11 @@ struct Equation : public Eq {
 
     if (jacobians) {
       if (jacobians[0])
-        fill(jacobians[0],jacobians[0]+MULT*SA,0.0);
+        fill(jacobians[0],jacobians[0]+MULT*MULT*SA,0.0);
       if (jacobians[1])
-        fill(jacobians[1],jacobians[1]+MULT*SB,0.0);
+        fill(jacobians[1],jacobians[1]+MULT*MULT*SB,0.0);
       if (jacobians[2])
-        fill(jacobians[2],jacobians[2]+MULT*SC,0.0);
+        fill(jacobians[2],jacobians[2]+MULT*MULT*SC,0.0);
     }
 #ifndef CX
     residuals[0] = -T[i][j][k];
@@ -90,27 +90,36 @@ struct Equation : public Eq {
     }
     return true;
 #else
-    cx(residuals[0],residuals[1]) = -T[i][j][k];
+    residuals[0] = -T[i][j][k].real();
+    residuals[1] = -T[i][j][k].imag();
     for (int t=0; t<SNZ; ++t) {
       cx a = cx(x[0][2*SI[t]],x[0][2*SI[t]+1]);
       cx b = cx(x[1][2*SJ[t]],x[1][2*SJ[t]+1]);
       cx c = cx(x[2][2*SK[t]],x[2][2*SK[t]+1]);
-      cx(residuals[0],residuals[1]) += alpha*a*b*c*SV[t];
+      cx cur = alpha*a*b*c*SV[t];
+      residuals[0] += cur.real();
+      residuals[1] += cur.imag();
       if (jacobians) {
         if (jacobians[0]) {
           cx e = alpha*b*c*SV[t];
-          cx(jacobians[0][2*SI[t]],jacobians[0][2*SA+2*t]) += e;
-          cx(jacobians[0][2*SI[t]+1],jacobians[0][2*SA+2*t+1]) += cx(0,1)*e;
+          jacobians[0][2*SI[t]] += e.real();
+          jacobians[0][2*SA+2*SI[t]] += e.imag();
+          jacobians[0][2*SI[t]+1] += -e.imag();
+          jacobians[0][2*SA+2*SI[t]+1] += e.real();
         }
         if (jacobians[1]) {
           cx e = alpha*a*c*SV[t];
-          cx(jacobians[1][2*SJ[t]],jacobians[1][2*SB+2*t]) += e;
-          cx(jacobians[1][2*SJ[t]+1],jacobians[1][2*SB+2*t+1]) += cx(0,1)*e;
+          jacobians[1][2*SJ[t]] += e.real();
+          jacobians[1][2*SB+2*SJ[t]] += e.imag();
+          jacobians[1][2*SJ[t]+1] += -e.imag();
+          jacobians[1][2*SB+2*SJ[t]+1] += e.real();
         }
         if (jacobians[2]) {
           cx e = alpha*a*b*SV[t];
-          cx(jacobians[2][2*SK[t]],jacobians[2][2*SC+2*t]) += e;
-          cx(jacobians[2][2*SK[t]+1],jacobians[2][2*SC+2*t+1]) += cx(0,1)*e;
+          jacobians[2][2*SK[t]] += e.real();
+          jacobians[2][2*SC+2*SK[t]] += e.imag();
+          jacobians[2][2*SK[t]+1] += -e.imag();
+          jacobians[2][2*SC+2*SK[t]+1] += e.real();
         }
       }
     }

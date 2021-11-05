@@ -7,13 +7,15 @@
 #include <lapacke.h>
 #include <cblas.h>
 
+#include "prob.h"
 #include "tensor.h"
 
 #include "als.h"
 
 using namespace std;
 
-void als(double *x, int group, double lambda) {
+void als(double *_x, int group, double lambda) {
+  F *x = (F *) _x;
   // let ta in {TA,TB,TC} correspond to group
   // and let tb tc be the other two (in cyclic order after ta)
 
@@ -34,7 +36,7 @@ void als(double *x, int group, double lambda) {
   int n = s(0,SA,SB,SC);
   int nrhs = s(0,TA,TB,TC);
 
-  double B[max(max(TA*(TB*TC+SA),TB*(TA*TC+SB)),TC*(TA*TB+SC))];
+  F B[max(max(TA*(TB*TC+SA),TB*(TA*TC+SB)),TC*(TA*TB+SC))];
   for (int i=0; i<TA; ++i) {
     for (int j=0; j<TB; ++j) {
       for (int k=0; k<TC; ++k) {
@@ -44,15 +46,15 @@ void als(double *x, int group, double lambda) {
   }
   if (lambda) {
     for (int i=0; i<s(0,TA,TB,TC); ++i) {
-      memset(B+i*m+base,0,s(0,SA,SB,SC)*sizeof(double));
+      memset(B+i*m+base,0,s(0,SA,SB,SC)*sizeof(F));
     }
   }
-  double A[max(max(SA*(TB*TC+SA),SB*(TA*TC+SB)),SC*(TA*TB+SC))];
-  memset(A,0,m*n*sizeof(double));
+  F A[max(max(SA*(TB*TC+SA),SB*(TA*TC+SB)),SC*(TA*TB+SC))];
+  memset(A,0,m*n*sizeof(F));
   for (int t=0; t<SNZ; ++t) {
     for (int j=0; j<s(1,TA,TB,TC); ++j) {
       for (int k=0; k<s(2,TA,TB,TC); ++k) {
-        double cur = 0;
+        F cur = 0;
         switch (group) {
           case 0: cur = x[TA*SA+j*SB+SJ[t]] * x[TA*SA+TB*SB+k*SC+SK[t]]; break;
           case 1: cur = x[TA*SA+TB*SB+j*SC+SK[t]] * x[k*SA+SI[t]]; break;
@@ -71,27 +73,37 @@ void als(double *x, int group, double lambda) {
   int rank = 0;
   int jpvt[max(max(SA,SB),SC)];
   memset(jpvt,0,s(0,SA,SB,SC)*sizeof(int));
+#ifdef CX
+  LAPACKE_zgelsy(LAPACK_COL_MAJOR,m,n,nrhs,(_Complex double *)A,m,(_Complex double *)B,m,jpvt,1e-13,&rank);
+#else
   LAPACKE_dgelsy(LAPACK_COL_MAJOR,m,n,nrhs,A,m,B,m,jpvt,1e-13,&rank);
+#endif
   if (rank != s(0,SA,SB,SC))
     printf("als: rank deficient problem, m=%d, n=%d, rank=%d\n",m,n,rank);
   /* LAPACKE_dgels(LAPACK_COL_MAJOR,'N',m,n,nrhs,A,m,B,m); */
 
+#ifdef CX
+  LAPACKE_zlacpy(LAPACK_COL_MAJOR,'N',n,nrhs,(_Complex double *)B,m,
+      (_Complex double *)x+s(0,0,TA*SA,TA*SA+TB*SB),s(0,SA,SB,SC));
+#else
   LAPACKE_dlacpy(LAPACK_COL_MAJOR,'N',n,nrhs,B,m,x+s(0,0,TA*SA,TA*SA+TB*SB),s(0,SA,SB,SC));
+#endif
 }
 
 void als_sym(double *x, double lambda, double step) {
   assert(TA == TB && TB == TC && SA == SB && SB == SC);
-  double tripx[3*SA*TA];
-  copy(x,x+SA*TA,tripx);
-  copy(x,x+SA*TA,tripx+SA*TA);
-  copy(x,x+SA*TA,tripx+2*SA*TA);
+  double tripx[3*SA*TA*MULT];
+  copy(x,x+SA*TA*MULT,tripx);
+  copy(x,x+SA*TA*MULT,tripx+SA*TA*MULT);
+  copy(x,x+SA*TA*MULT,tripx+2*SA*TA*MULT);
   als(tripx,0,lambda);
-  for (int i=0; i<SA*TA; ++i) {
+  for (int i=0; i<SA*TA*MULT; ++i) {
     x[i] = x[i] + step*(tripx[i] - x[i]);
   }
 }
 
-void als_some(double *x, const vector<tuple<int,int,int> > & eqs, int group, double lambda) {
+void als_some(double *_x, const vector<tuple<int,int,int> > & eqs, int group, double lambda) {
+  F *x = (F *) _x;
   // computes the same as als, but allows some equations to be ignored (only
   // those in eqs are kept)
   auto s = [=](int p, int a, int b, int c, int sgn=1) {
@@ -121,7 +133,7 @@ void als_some(double *x, const vector<tuple<int,int,int> > & eqs, int group, dou
     int nrhs = it->second.size(); // s(0,TA,TB,TC);
     int ldb = max(m,n);
 
-    double B[max(max(TA*(TB*TC+SA),TB*(TA*TC+SB)),TC*(TA*TB+SC))];
+    F B[max(max(TA*(TB*TC+SA),TB*(TA*TC+SB)),TC*(TA*TB+SC))];
 
     for (int ii=0; ii < it->second.size(); ++ii) {
       for (int jk=0; jk < it->first.size(); ++jk) {
@@ -136,12 +148,12 @@ void als_some(double *x, const vector<tuple<int,int,int> > & eqs, int group, dou
         memset(B+i*ldb+base,0,s(0,SA,SB,SC)*sizeof(double));
       }
     }
-    double A[max(max(SA*(TB*TC+SA),SB*(TA*TC+SB)),SC*(TA*TB+SC))];
+    F A[max(max(SA*(TB*TC+SA),SB*(TA*TC+SB)),SC*(TA*TB+SC))];
     memset(A,0,m*n*sizeof(double));
     for (int t=0; t<SNZ; ++t) {
       for (int jk=0; jk < it->first.size(); ++jk) {
         int j,k; tie(j,k) = it->first[jk];
-        double cur = 0;
+        F cur = 0;
         switch (group) {
           case 0: cur = x[TA*SA+j*SB+SJ[t]] * x[TA*SA+TB*SB+k*SC+SK[t]]; break;
           case 1: cur = x[TA*SA+TB*SB+j*SC+SK[t]] * x[k*SA+SI[t]]; break;
@@ -159,7 +171,11 @@ void als_some(double *x, const vector<tuple<int,int,int> > & eqs, int group, dou
     int rank = 0;
     int jpvt[max(max(SA,SB),SC)];
     memset(jpvt,0,s(0,SA,SB,SC)*sizeof(int));
+#ifdef CX
+    LAPACKE_zgelsy(LAPACK_COL_MAJOR,m,n,nrhs,(_Complex double *)A,m,(_Complex double *)B,ldb,jpvt,1e-13,&rank);
+#else
     LAPACKE_dgelsy(LAPACK_COL_MAJOR,m,n,nrhs,A,m,B,ldb,jpvt,1e-13,&rank);
+#endif
     if (rank != min(m,n))
       printf("als: rank deficient problem, m=%d, n=%d, rank=%d\n",m,n,rank);
     /* LAPACKE_dgels(LAPACK_COL_MAJOR,'N',m,n,nrhs,A,m,B,m); */
@@ -174,12 +190,12 @@ void als_some(double *x, const vector<tuple<int,int,int> > & eqs, int group, dou
 
 void als_sym_some(double *x, const vector<tuple<int,int,int> > & eqs, double lambda, double step) {
   assert(TA == TB && TB == TC && SA == SB && SB == SC);
-  double tripx[3*SA*TA];
-  copy(x,x+SA*TA,tripx);
-  copy(x,x+SA*TA,tripx+SA*TA);
-  copy(x,x+SA*TA,tripx+2*SA*TA);
+  double tripx[3*SA*TA*MULT];
+  copy(x,x+SA*TA*MULT,tripx);
+  copy(x,x+SA*TA*MULT,tripx+SA*TA*MULT);
+  copy(x,x+SA*TA*MULT,tripx+2*SA*TA*MULT);
   als_some(tripx,eqs,0,lambda);
-  for (int i=0; i<SA*TA; ++i) {
+  for (int i=0; i<SA*TA*MULT; ++i) {
     x[i] = x[i] + step*(tripx[i] - x[i]);
   }
 }
