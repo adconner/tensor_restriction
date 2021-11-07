@@ -37,13 +37,11 @@ int main(int argc, const char** argv) {
   /* } */
 
 
-
-
   vector<tuple<int,int,int > > eqs;
   for (int i=0; i<TA; ++i) {
     for (int j=0; j<TB; ++j) {
       for (int k=0; k<TC; ++k) {
-        if (true) {
+        if (i <= j && j <= k) {
         /* if (i<j && j<k) { */
         /* if (TIGHTA[i] + TIGHTB[j] + TIGHTC[k] <= 0) { */
           eqs.push_back(make_tuple(i,j,k));
@@ -59,8 +57,9 @@ int main(int argc, const char** argv) {
   double costlast=1e7;
   int bad = 0;
   double sqalpha = 0.2;
-  for (int it=0; it<20000; ++it) {
+  for (int it=0; it<20000000; ++it) {
     /* als(p.x.data(),it%3,sqalpha); */
+    /* als_sym_some(p.x.data(),eqs,sqalpha); */
     als_sym(p.x.data(),sqalpha);
     /* als_some(p.x.data(),eqs,it%3,sqalpha); */
     double cost; p.p.Evaluate(Problem::EvaluateOptions(),&cost,0,0,0);
@@ -68,22 +67,25 @@ int main(int argc, const char** argv) {
         {return max(a,std::abs(b));} ); 
     double l2 = sqrt(accumulate(p.x.begin(),p.x.end(),0.0,[](double a, double b) 
         {return a+b*b;} )); 
-    if ((costlast - cost) / costlast < 3e-5) {
-    /* if ((costlast - cost) / costlast < 3e-4) { */
+    if ((costlast - cost) / costlast < 3e-4) {
       bad++;
     } else {
       bad=0;
     }
-    printf("%4d %20.15g %20.15g %20.15g %10.5g %d\n",it,2*cost,ma,l2,sqalpha,bad);
+    printf("%4d %20.15g %20.15g %20.15g %10.5g %d %5.1e\n",it,2*cost,ma,l2,sqalpha,bad,
+        (costlast-cost)/costlast );
+    if (cost < 1e-27)
+      break;
     if (bad >= 3) {
-      if (sqalpha == 0.0) {
+      if (sqalpha == 0.0 && bad >= 100) {
         break;
-      } else if (sqalpha < 1e-4) {
+      } else if (sqalpha > 0.0 && sqalpha < 1e-4) {
         sqalpha = 0.0;
-      } else {
+        bad = 0;
+      } else if (sqalpha > 0.0) {
         sqalpha *= 0.9;
+        bad = 0;
       }
-      bad = 0;
     }
     costlast = cost;
   }
@@ -93,15 +95,15 @@ int main(int argc, const char** argv) {
   /*   logsol(p,"out_dense.txt"); */
   /*   return 1; */
   /* } */
-  trust_region_f(p,[&](){
-      for (int it=0; it<3*4; ++it) {
-        /* als_some(p.x.data(),eqs,it%3,1e-3); */
-        als_sym(p.x.data());
-        /* als(p.x.data(),it%3); */
-      }
-      },1e-7,300);
+  /* trust_region_f(p,[&](){ */
+  /*     for (int it=0; it<3*4; ++it) { */
+  /*       /1* als_some(p.x.data(),eqs,it%3,1e-3); *1/ */
+  /*       als_sym(p.x.data()); */
+  /*       /1* als_sym_some(p.x.data(),eqs); *1/ */
+  /*       /1* als(p.x.data(),it%3); *1/ */
+  /*     } */
+  /*     },1e-7,300); */
   logsol(p,"out_dense.txt");
-  /* return 0; */
 
   /* // trust region refine/als with l2 regularization curretly trust region */
   /* double costlast=1e7; */
@@ -148,27 +150,29 @@ int main(int argc, const char** argv) {
   /* /1*   } *1/ */
   /* /1* } *1/ */
 
+  MyTerminationType term;
+
   /* for (int bi=0; bi < BLOCKS; ++bi) { */
   /*   for (int i=0; i< MULT*(BBOUND[i+1] - BBOUND[i]); ++i) { */
   /*     p.p.SetParameterLowerBound(p.x.data()+MULT*BBOUND[bi],i,-2.0); */
   /*     p.p.SetParameterUpperBound(p.x.data()+MULT*BBOUND[bi],i,2.0); */
   /*   } */
   /* } */
-  /* MyTerminationType term = l2_reg_search(p, 1e-3, 1e-5, true, 3000, 0.1); */
-  /* MyTerminationType term = l2_reg_search(p, 1e-3, 1e-3, true, 3000, 0.1); */
+  /* term = l2_reg_search(p, 1e-3, 1e-5, true, 3000, 0.1); */
+  term = l2_reg_search(p, 1e-3, 1e-3, true, 3000, 0.1);
 
-  /* MyTerminationType term = l2_reg_search(p, 1e-3, 1e-5, false, 3000, 0.1); */
+  /* term = l2_reg_search(p, 1e-3, 1e-5, false, 3000, 0.1); */
 
   /* return 0; */
   /* term = l2_reg_search(p, 1e-2, 1e-5, true, 1000, 0.1); */
-  /* MyTerminationType term = l2_reg_search(p, 1e-2, 1e-5, false, 100, 0.0001); */
-  /* MyTerminationType term = l2_reg_search(p, 1e-2, 1e-16, true, 100); */
-  /* MyTerminationType term = SOLUTION; */
+  /* term = l2_reg_search(p, 1e-2, 1e-5, false, 100, 0.0001); */
+  /* term = l2_reg_search(p, 1e-2, 1e-16, true, 100); */
+  /* term = SOLUTION; */
 
   /* int successes = 0; */
   /* greedy_discrete(p, successes, DA_ZERO, N); */
   /* greedy_discrete(p, successes, DA_E3, N); */
-  /* Solver::Summary s; term = solve(p, s, 1e-13); */
+  Solver::Summary s; term = solve(p, s, 1e-13);
   /* cout << s.FullReport() << endl; */
   /* logsol(p,"out.txt"); */
   /* return 0; */
@@ -192,21 +196,21 @@ int main(int argc, const char** argv) {
   /* } */
   /* return 1; */
 
-  /* if (term == SOLUTION) { */
-  /*   minimize_max_abs(p, 1e-1); */
-  /*   /1* sparsify(p, 1.0, 1e-4); *1/ */
-  /*   int successes = 0; */
-  /*   /1* greedy_discrete_careful(p, successes, DA_ZERO); *1/ */
-  /*   /1* greedy_discrete_careful(p, successes, DA_E3); *1/ */
-  /*   greedy_discrete(p, successes, DA_ZERO, N); */
-  /*   greedy_discrete(p, successes, DA_E3, N); */
-  /*   /1* greedy_discrete_pairs(p, N*100); *1/ */
-  /*   double ma = minimize_max_abs(p); */
-  /*   cout << "ma " << ma << endl; */
-  /*   logsol(p,"out.txt"); */
-  /*   return 0; */
-  /* } */
-  /* return 1; */
+  if (term == SOLUTION) {
+    minimize_max_abs(p, 1e-1);
+    /* sparsify(p, 1.0, 1e-4); */
+    int successes = 0;
+    /* greedy_discrete_careful(p, successes, DA_ZERO); */
+    /* greedy_discrete_careful(p, successes, DA_E3); */
+    greedy_discrete(p, successes, DA_ZERO, N);
+    greedy_discrete(p, successes, DA_E3, N);
+    /* greedy_discrete_pairs(p, N*100); */
+    double ma = minimize_max_abs(p);
+    cout << "ma " << ma << endl;
+    logsol(p,"out.txt");
+    return 0;
+  }
+  return 1;
 
   logsol(p,"out.txt");
   return 0;

@@ -95,7 +95,7 @@ void cholmod(MyProblem &p, function<tuple<bool,bool,double>(double,double,double
 }
 
 void levenberg_marquardt(MyProblem &p, function<bool(double,double,double,bool)> f, 
-    const double eps = 0.0, const double eta1=0.90, const double eta2=0.15, double mu=32.0) {
+    const double eps = 0.0, const double eta1=0.90, const double eta2=0.05, double mu=10000.0) {
   cholmod(p,[&](double icost, double cost, double model_cost_change) {
       if (icost == -1.0) { // first iteration
         return make_tuple(true,true,1/mu);
@@ -109,7 +109,7 @@ void levenberg_marquardt(MyProblem &p, function<bool(double,double,double,bool)>
       if (0.99 < rho && rho < 1.01) {
         mu *= 8;
       } else if (rho > eta1) {
-        mu *= 2;
+        mu *= 3;
       } else if (rho < eta2) {
         mu *= 0.5;
       }
