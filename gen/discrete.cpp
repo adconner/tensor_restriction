@@ -34,9 +34,18 @@ void greedy_discrete(MyProblem &p, int &successes, DiscreteAttempt da, int tryli
     if (da == DA_PM_ONE) {
       targets = { {1.0, 0.0}, {-1.0, 0.0} };
     } else if (da == DA_E3) {
-      targets = { {1.0,0.0}, {-0.5, 0.866025403784439}, {-0.5, -0.866025403784439} };
-      for (int i=0; i<3; ++i) {
-        targets.push_back(-targets[i]);
+      int k = 6;
+      double pi = 4*atan(1.0);
+      for (int i=0; i<k; ++i) {
+        targets.push_back({cos(2*pi/k), sin(2*pi/k)});
+        /* targets.push_back({cos(2*pi/k)/2, sin(2*pi/k)/2}); */
+        /* targets.push_back({cos(2*pi/k)*2, sin(2*pi/k)*2}); */
+        /* targets.push_back({cos(2*pi/k)/4, sin(2*pi/k)/4}); */
+        /* targets.push_back({cos(2*pi/k)*4, sin(2*pi/k)*4}); */
+        /* targets.push_back({cos(2*pi/k)/3, sin(2*pi/k)/3}); */
+        /* targets.push_back({cos(2*pi/k)*6, sin(2*pi/k)*6}); */
+        /* targets.push_back({cos(2*pi/k)/sqrt(2), sin(2*pi/k)/sqrt(2)}); */
+        /* targets.push_back({cos(2*pi/k)*sqrt(2), sin(2*pi/k)*sqrt(2)}); */
       }
       /* targets.push_back(cx(0.0)); */
     }
