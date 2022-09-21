@@ -30,11 +30,11 @@ MyTerminationType solve(MyProblem &p, Solver::Summary &summary,
   options.max_num_iterations = max_num_iterations;
 
   unique_ptr<FunctorCallback> callback(new FunctorCallback([&](const IterationSummary &s){
-      if (verbose) {
-        double ma = accumulate(p.x.begin(),p.x.end(),0.0,[](double a, double b) 
-            {return max(a,std::abs(b));} ); 
-        printf("%3d %20.15g %20.15f %10.5g %10.5g\n", s.iteration,2*s.cost,ma,s.relative_decrease,s.trust_region_radius);
-      }
+      /* if (verbose) { */
+      /*   double ma = accumulate(p.x.begin(),p.x.end(),0.0,[](double a, double b) */ 
+      /*       {return max(a,std::abs(b));} ); */ 
+      /*   printf("%3d %20.15g %20.15f %10.5g %10.5g\n", s.iteration,2*s.cost,ma,s.relative_decrease,s.trust_region_radius); */
+      /* } */
 
       double relative_decrease = s.cost_change / s.cost;
       if (s.cost < solved_fine) {
