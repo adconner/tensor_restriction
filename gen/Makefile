@@ -9,9 +9,9 @@ CXX=clang++
 # .SUFFIXES:
 
 ofiles=initial.o l2reg.o util.o opts.o discrete.o cholmod.o
-# ofiles+=$(sort $(patsubst %.c,%.o,$(wildcard gen/*.c)))
-# ofiles+=$(sort $(patsubst %.cpp,%.o,$(wildcard gen/*.cpp)))
-ofiles+=$(sort $(patsubst %.cpp,%.o,$(wildcard restrict/*.cpp)))
+ofiles+=$(sort $(patsubst %.c,%.o,$(wildcard gen/*.c)))
+ofiles+=$(sort $(patsubst %.cpp,%.o,$(wildcard gen/*.cpp)))
+# ofiles+=$(sort $(patsubst %.cpp,%.o,$(wildcard restrict/*.cpp)))
 
 main: main.o $(ofiles)
 	$(CXX) $^ -o $@ $(LDFLAGS)
