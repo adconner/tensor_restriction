@@ -231,7 +231,7 @@ int main(int argc, const char** argv) {
 
   if (find_brank) {
     auto [r,p] = nextbrcheck();
-    while (p > 1e-3) {
+    while (p > 5e-4) {
       printf("border rank try %d %g\n", r,p);
       copy(brp.begin(),brp.end(),ostream_iterator<double>(cout," ")); cout << endl;
       auto res = try1(r,x);
@@ -242,7 +242,7 @@ int main(int argc, const char** argv) {
 
   if (find_rank) {
     auto [r,p] = nextrcheck();
-    while (p > 1e-3) {
+    while (p > 5e-4) {
       printf("rank try %d %g\n", r,p);
       copy(rp.begin(),rp.end(),ostream_iterator<double>(cout," ")); cout << endl;
       auto res = try1(r,x);
