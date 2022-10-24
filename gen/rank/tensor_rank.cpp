@@ -238,10 +238,6 @@ int main(int argc, const char** argv) {
       update(r,res);
       tie(r,p) = nextbrcheck();
     }
-    if (brhi <= rupper) {
-      printf("border rank %d\n",brhi);
-      logsol(bestbr,brank_out);
-    }
   }
 
   if (find_rank) {
@@ -253,10 +249,15 @@ int main(int argc, const char** argv) {
       update(r,res);
       tie(r,p) = nextrcheck();
     }
-    if (rhi <= rupper) {
-      printf("rank %d\n",rhi);
-      logsol(bestr,rank_out);
-    }
+  }
+  
+  if (find_brank && brhi <= rupper) {
+    printf("border rank %d\n",brhi);
+    logsol(bestbr,brank_out);
+  }
+  if (find_rank && rhi <= rupper) {
+    printf("rank %d\n",rhi);
+    logsol(bestr,rank_out);
   }
 
   return 0;
