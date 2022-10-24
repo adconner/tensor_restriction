@@ -1,7 +1,8 @@
 import subprocess
 
 def tensor_rank_try1(T,r,ftol=1e-5,maxit=600,verbose=False):
-    cmd = ['gen/restrict/rank/tensor_rank_try1',str(r)]
+    fout = sage.misc.temporary_file.tmp_filename()
+    cmd = ['gen/rank/tensor_rank_try1',str(r),fout]
     proc = subprocess.Popen(cmd,stdin=subprocess.PIPE,stderr=subprocess.PIPE)
     a=len(T)
     b,c = T[0].dimensions()
@@ -9,12 +10,14 @@ def tensor_rank_try1(T,r,ftol=1e-5,maxit=600,verbose=False):
     for m in T:
         for x in m.list():
             proc.stdin.write('%f\n' % CDF(x))
-    out = []
-    for i in range(r):
-        cur = [CDF(*map(float,proc.stderr.readline().split()))
-            for j in range(a+b+c)]
-        out.append((cur[:a],cur[a:a+b],cur[a+b:]))
-    return out
+    proc.communicate()
+    dec = open(fout).readlines()
+    dec = [CDF(*map(float,e)) for e in groupn(dec,2)]
+    r = len(dec) // (a+b+c)
+    dec = groupn(dec,r)
+    dec = [ (v[:a],v[a:a+b],v[a+b:]) for i in range(r) for v in [[es[i] for es in dec]]]
+    out.append(dec)
+    return dec
 
 def tensor_rank(T,find_brank=True,find_rank=True,brlower=0,brupper=None):
     if brlower == 0:
@@ -28,7 +31,7 @@ def tensor_rank(T,find_brank=True,find_rank=True,brlower=0,brupper=None):
         brank_out = sage.misc.temporary_file.tmp_filename()
     if find_rank:
         rank_out = sage.misc.temporary_file.tmp_filename()
-    cmd = ['rank/tensor_rank',brank_out if find_brank else 'no',
+    cmd = ['gen/rank/tensor_rank',brank_out if find_brank else 'no',
             rank_out if find_rank else 'no',str(brlower),str(brupper)]
     proc = subprocess.Popen(cmd,stdin=subprocess.PIPE)
     a=len(T)
@@ -40,15 +43,19 @@ def tensor_rank(T,find_brank=True,find_rank=True,brlower=0,brupper=None):
     proc.communicate()
     out=[]
     if find_brank:
-        br = open(brank_out).read().split()
-        br = [CDF(*map(float,e)) for e in groupn(br,2)]
-        br = [(v[:a],v[a:a+b],v[a+b:]) for v in groupn(br,a+b+c)]
-        out.append(br)
+        dec = open(brank_out).readlines()
+        dec = [CDF(*map(float,e)) for e in groupn(dec,2)]
+        r = len(dec) // (a+b+c)
+        dec = groupn(dec,r)
+        dec = [ (v[:a],v[a:a+b],v[a+b:]) for i in range(r) for v in [[es[i] for es in dec]]]
+        out.append(dec)
     if find_rank:
-        r = open(rank_out).read().split()
-        r = [CDF(*map(float,e)) for e in groupn(r,2)]
-        r = [(v[:a],v[a:a+b],v[a+b:]) for v in groupn(r,a+b+c)]
-        out.append(r)
+        dec = open(rank_out).readlines()
+        dec = [CDF(*map(float,e)) for e in groupn(dec,2)]
+        r = len(dec) // (a+b+c)
+        dec = groupn(dec,r)
+        dec = [ (v[:a],v[a:a+b],v[a+b:]) for i in range(r) for v in [[es[i] for es in dec]]]
+        out.append(dec)
     return out
 
 # vim: ft=python

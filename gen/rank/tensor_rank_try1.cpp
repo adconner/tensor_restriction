@@ -42,6 +42,11 @@ int main(int argc, const char** argv) {
   
   assert(argc >= 2);
   int r = stoi(argv[1]);
+  string outf = "out.txt";
+  if (argc >= 3) {
+    outf = argv[2];
+  }
+  
   set_rank_r(r);
   set_params();
 
@@ -115,7 +120,7 @@ int main(int argc, const char** argv) {
   }
   double cost; p.p.Evaluate(Problem::EvaluateOptions(),&cost,0,0,0);
   printf("%20.15g\n",2*cost);
-  logsol(p.x,"out_dense.txt");
+  /* logsol(p.x,"out_dense.txt"); */
   /* if (2*cost > 1.0) { */
   /*   return 1; */
   /* } */
@@ -203,7 +208,7 @@ int main(int argc, const char** argv) {
   /* return 0; */
 
 
-  logsol(p.x,"out_dense.txt");
+  /* logsol(p.x,"out_dense.txt"); */
   /* if (term == SOLUTION || term == BORDER_LIKELY) { */
   /*   return 0; */
   /* } else { */
@@ -233,10 +238,11 @@ int main(int argc, const char** argv) {
     /* greedy_discrete_pairs(p, N*100); */
     double ma = minimize_max_abs(p);
     cout << "ma " << ma << endl;
-    logsol(p.x,"out.txt");
-    return 0;
   }
-  return 1;
+
+  logsol(p.x,outf);
+  
+  return 0;
 
   /* logsol(p.x,"out.txt"); */
   /* return 0; */
