@@ -14,7 +14,7 @@ typedef complex<double> cx;
 
 extern mt19937 rng;
 
-void logsol(const MyProblem &p, string fname);
+void logsol(const vector<double> &x, string fname);
 void set_value_variable(MyProblem &p, int i);
 void set_value_constant(MyProblem &p, int i);
 double max_abs(const MyProblem &p);

@@ -10,16 +10,16 @@
 // control variables
 mt19937 rng;
 
-void logsol(const MyProblem &p, string fname) {
+void logsol(const vector<double> &x, string fname) {
   if (tostdout) {
     cout.precision(numeric_limits<double>::max_digits10);
     cout << "OUTPUT " << fname << " ";
-    copy(p.x.begin(),p.x.end(),ostream_iterator<double>(cout," "));
+    copy(x.begin(),x.end(),ostream_iterator<double>(cout," "));
     cout << endl;
   } else {
     ofstream out(fname);
     out.precision(numeric_limits<double>::max_digits10);
-    copy(p.x.begin(),p.x.end(),ostream_iterator<double>(out,"\n"));
+    copy(x.begin(),x.end(),ostream_iterator<double>(out,"\n"));
   }
 }
 

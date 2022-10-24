@@ -5,7 +5,7 @@ CFLAGS=-g -O3 -ffast-math -march=native
 CXXFLAGS=-std=c++20 -I/usr/include/eigen3 $(shell pkg-config --cflags clp) $(CFLAGS)
 LDFLAGS=-llapacke $(shell pkg-config --libs clp) -lceres -lcxsparse -lcholmod -lumfpack -lamd -lcamd -lcolamd -lccolamd -lbtf -lsuitesparseconfig -lmetis -llapack -lopenblas -lglog -lomp -pthread  $(CXXFLAGS)
 
-targets = tensor_rank_try1
+targets = tensor_rank tensor_rank_try1
 ofiles = prob.o tensor.o ../util.o ../discrete.o ../initial.o ../l2reg.o ../gauss_newton.o ../opts.o ../cholmod.o ../restrict/restrict.o ../restrict/als.o
 
 all: $(targets)

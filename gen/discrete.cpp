@@ -144,7 +144,7 @@ void greedy_discrete(MyProblem &p, int &successes, DiscreteAttempt da, int tryli
             successes++;
             minimize_max_abs(p,1e-1);
             /* l2_reg_search(...) */
-            logsol(p,"out_partial_sparse.txt");
+            logsol(p.x,"out_partial_sparse.txt");
             goto found;
           }
           if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
@@ -280,7 +280,7 @@ void greedy_discrete_careful(MyProblem &p, int &successes, DiscreteAttempt da) {
       }
     }
 
-    logsol(p,"out_partial_sparse.txt");
+    logsol(p.x,"out_partial_sparse.txt");
     cout << "\nsuccesses " << successes << " new max " << cost << " free equations " << free << endl;
     last_cost = cost;
 
@@ -415,7 +415,7 @@ void greedy_discrete_pairs(MyProblem &p, const int trylimit) {
           unio(i,j);
           successes++;
           minimize_max_abs(p,1e-1);
-          logsol(p,"out_partial_sparse.txt");
+          logsol(p.x,"out_partial_sparse.txt");
           goto found;
         }
         if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "

@@ -7,7 +7,7 @@
 #include <lapacke.h>
 #include <cblas.h>
 
-#include "prob.h"
+#include "../prob.h"
 #include "tensor.h"
 
 #include "als.h"

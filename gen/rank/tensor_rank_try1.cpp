@@ -115,7 +115,7 @@ int main(int argc, const char** argv) {
   }
   double cost; p.p.Evaluate(Problem::EvaluateOptions(),&cost,0,0,0);
   printf("%20.15g\n",2*cost);
-  logsol(p,"out_dense.txt");
+  logsol(p.x,"out_dense.txt");
   /* if (2*cost > 1.0) { */
   /*   return 1; */
   /* } */
@@ -128,7 +128,7 @@ int main(int argc, const char** argv) {
   /*       /1* als(p.x.data(),it%3); *1/ */
   /*     } */
   /*     },1e-7,300); */
-  /* logsol(p,"out_dense.txt"); */
+  /* logsol(p.x,"out_dense.txt"); */
 
   /* // trust region refine/als with l2 regularization curretly trust region */
   /* double costlast=1e7; */
@@ -199,11 +199,11 @@ int main(int argc, const char** argv) {
   /* greedy_discrete(p, successes, DA_E3, N); */
   /* Solver::Summary s; term = solve(p, s, 1e-13); */
   /* cout << s.FullReport() << endl; */
-  /* logsol(p,"out.txt"); */
+  /* logsol(p.x,"out.txt"); */
   /* return 0; */
 
 
-  logsol(p,"out_dense.txt");
+  logsol(p.x,"out_dense.txt");
   /* if (term == SOLUTION || term == BORDER_LIKELY) { */
   /*   return 0; */
   /* } else { */
@@ -211,12 +211,12 @@ int main(int argc, const char** argv) {
   /* } */
 
   /* if (term == SOLUTION) { */
-  /*   logsol(p,"out_dense.txt"); */
+  /*   logsol(p.x,"out_dense.txt"); */
   /*   double ma = minimize_max_abs(p, 1e-1); */
   /*   sparsify(p, 1.0, 1e-4); */
   /*   sparsify(p, 1.0, 1e-4); */
   /*   cout << "ma " << ma << endl; */
-  /*   logsol(p,"out.txt"); */
+  /*   logsol(p.x,"out.txt"); */
   /*   return 0; */
   /* } */
 /* return 1; */
@@ -233,11 +233,11 @@ int main(int argc, const char** argv) {
     /* greedy_discrete_pairs(p, N*100); */
     double ma = minimize_max_abs(p);
     cout << "ma " << ma << endl;
-    logsol(p,"out.txt");
+    logsol(p.x,"out.txt");
     return 0;
   }
   return 1;
 
-  /* logsol(p,"out.txt"); */
+  /* logsol(p.x,"out.txt"); */
   /* return 0; */
 }
