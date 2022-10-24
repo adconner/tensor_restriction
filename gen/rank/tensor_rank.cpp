@@ -162,14 +162,7 @@ int main(int argc, const char** argv) {
   };
 
   auto update = [&](int r, MyTerminationType res) {
-    if (res == NO_SOLUTION) {
-      double mult = 0.7;
-      for (int i=r; i >= 0; --i) {
-        rp[i] *= 0.9*mult;
-        brp[i] *= mult;
-        mult *= 0.7;
-      }
-    } else if (res == BORDER_LIKELY) {
+    if (res == BORDER_LIKELY) {
       double mult = 0.7;
       for (int i=r; i >= 0; --i) {
         rp[i] *= mult;
@@ -196,7 +189,15 @@ int main(int argc, const char** argv) {
         bestbr = x;
       }
     } else {
-      printf("warn: no info\n");
+      if (res != NO_SOLUTION) {
+        printf("warn: treating unknown as no solution\n");
+      }
+      double mult = 0.7;
+      for (int i=r; i >= 0; --i) {
+        rp[i] *= 0.9*mult;
+        brp[i] *= mult;
+        mult *= 0.7;
+      }
     }
     normalize();
   };
