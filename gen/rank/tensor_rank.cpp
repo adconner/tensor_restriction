@@ -21,7 +21,7 @@
 using namespace ceres;
 using namespace std;
 
-MyTerminationType try1(int r, vector<F> &x, bool stop_on_br = true) {
+MyTerminationType try1(int r, vector<double> &x, bool stop_on_br = true) {
   set_rank_r(r);
   set_params();
   
@@ -148,7 +148,7 @@ int main(int argc, const char** argv) {
   }
 
   int brhi = rupper+1, rhi = rupper+1;
-  vector<F> x, bestr, bestbr;
+  vector<double> x, bestr, bestbr;
 
   auto normalize = [&] () {
     double brptot = accumulate(brp.begin(),brp.end(),0.0);
