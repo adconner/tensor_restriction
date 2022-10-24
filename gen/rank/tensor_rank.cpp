@@ -21,6 +21,8 @@
 using namespace ceres;
 using namespace std;
 
+const double pthresh = 1e-7;
+
 MyTerminationType try1(int r, vector<double> &x, bool stop_on_br = true) {
   set_rank_r(r);
   set_params();
@@ -236,7 +238,7 @@ int main(int argc, const char** argv) {
 
   if (find_brank) {
     auto [r,p] = nextbrcheck();
-    while (p > 5e-4) {
+    while (p > pthresh) {
       printf("border rank try %d %g\n", r,p);
       copy(brp.begin(),brp.end(),ostream_iterator<double>(cout," ")); cout << endl;
       auto res = try1(r,x);
@@ -247,7 +249,7 @@ int main(int argc, const char** argv) {
 
   if (find_rank) {
     auto [r,p] = nextrcheck();
-    while (p > 5e-4) {
+    while (p > pthresh) {
       printf("rank try %d %g\n", r,p);
       copy(rp.begin(),rp.end(),ostream_iterator<double>(cout," ")); cout << endl;
       auto res = try1(r,x);
