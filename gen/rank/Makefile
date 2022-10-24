@@ -1,7 +1,7 @@
 # CFLAGS=-g -fsanitize=address
 CFLAGS=-g -O3 -ffast-math -march=native
 # CFLAGS=-g
-# CFLAGS += -DCX
+CFLAGS += -DCX
 CXXFLAGS=-std=c++20 -I/usr/include/eigen3 $(shell pkg-config --cflags clp) $(CFLAGS)
 LDFLAGS=-llapacke $(shell pkg-config --libs clp) -lceres -lcxsparse -lcholmod -lumfpack -lamd -lcamd -lcolamd -lccolamd -lbtf -lsuitesparseconfig -lmetis -llapack -lopenblas -lglog -lomp -pthread  $(CXXFLAGS)
 
@@ -16,13 +16,13 @@ tensor_rank_try1: tensor_rank_try1.o $(ofiles)
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
 
-../restrict/prob.h:# $(wildcard *.cpp)
+../restrict/prob.h:
 	echo '#include "../rank/prob.h"' > $@
 	
-../restrict/tensor.h:# $(wildcard *.cpp)
+../restrict/tensor.h:
 	echo '#include "../rank/tensor.h"' > $@
 
-../prob.h:# $(wildcard *.cpp)
+../prob.h:
 	echo '#include "restrict/prob.h"' > $@
 	
 prob.o: prob.cpp
@@ -40,4 +40,4 @@ tensor.o: tensor.cpp
 
 .PHONY: clean
 clean:
-	rm -f *.o ../*.o ../restrict/*.o
+	rm -f *.o ../*.o ../restrict/*.o ../prob.h ../restrict/tensor.h ../restrict/prob.h
