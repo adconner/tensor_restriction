@@ -21,7 +21,7 @@
 using namespace ceres;
 using namespace std;
 
-const double pthresh = 1e-7;
+const double pthresh = 5e-2;
 
 MyTerminationType try1(int r, vector<double> &x, bool stop_on_br = true) {
   set_rank_r(r);
