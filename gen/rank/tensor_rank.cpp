@@ -21,7 +21,7 @@
 using namespace ceres;
 using namespace std;
 
-const double pthresh = 5e-2;
+const double pthresh = 1e-1;
 
 MyTerminationType try1(int r, vector<double> &x, bool stop_on_br = true) {
   set_rank_r(r);
@@ -138,10 +138,9 @@ int main(int argc, const char** argv) {
 
   vector<double> brp(rupper+1);
   vector<double> rp(rupper+1);
-  for (int i=0; i < max(max(TA,TB),TC); ++i) {
-    rp[i] = brp[i] = 0.1;
+  for (int i=0; i <= min(max(max(TA,TB),TC), rupper); ++i) {
+    rp[i] = brp[i] = 1.0;
   }
-  brp[max(max(TA,TB),TC)] = rp[max(max(TA,TB),TC)] = 1.0;
   for (int i=max(max(TA,TB),TC)+1; i <= rupper; ++i) {
     rp[i] = brp[i] = brp[i-1] * 0.8;
   }
@@ -166,10 +165,10 @@ int main(int argc, const char** argv) {
 
   auto update = [&](int r, MyTerminationType res) {
     if (res == BORDER_LIKELY) {
-      double mult = 0.7;
+      double mult = 0.5;
       for (int i=r; i >= 0; --i) {
         rp[i] *= mult;
-        mult *= 0.7;
+        mult *= 0.5;
       }
       for (int i=r+1; i <= rupper; ++i) {
         brp[i] = 0.0;
@@ -195,11 +194,11 @@ int main(int argc, const char** argv) {
       if (res != NO_SOLUTION) {
         printf("warn: treating unknown as no solution\n");
       }
-      double mult = 0.7;
+      double mult = 0.5;
       for (int i=r; i >= 0; --i) {
         rp[i] *= 0.9*mult;
         brp[i] *= mult;
-        mult *= 0.7;
+        mult *= 0.5;
       }
     }
     normalize();
