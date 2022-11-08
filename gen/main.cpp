@@ -78,7 +78,7 @@ int main(int argc, const char** argv) {
         (costlast-cost)/costlast );
     if (cost < 1e-27)
       break;
-    if (bad >= 3) {
+    if (bad >= 3 || cost > costlast) {
       if (sqalpha == 0.0 && bad >= 1000) {
         break;
       } else if (sqalpha > 0.0 && sqalpha < 1e-4) {

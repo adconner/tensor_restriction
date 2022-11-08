@@ -69,20 +69,20 @@ MyTerminationType try1(int r, vector<double> &x, bool stop_on_br = true) {
       }
     }
     double cost; p.p.Evaluate(Problem::EvaluateOptions(),&cost,0,0,0);
-    if ((costlast - cost) / costlast < 1e-4) {
+    if ((costlast - cost) / costlast < 5e-5) {
       bad++;
     } else {
       bad=0;
     }
-    /* double ma = accumulate(p.x.begin(),p.x.end(),0.0,[](double TA, double TB) */ 
-    /*     {return max(TA,std::abs(TB));} ); */ 
-    /* double l2 = sqrt(accumulate(p.x.begin(),p.x.end(),0.0,[](double TA, double TB) */ 
-    /*     {return TA+TB*TB;} )); */ 
-    /* printf("%4d %20.15g %20.15g %20.15g %10.5g %d %5.1e\n",it,2*cost,ma,l2,sqalpha,bad, */
-    /*     (costlast-cost)/costlast ); */
+    double ma = accumulate(p.x.begin(),p.x.end(),0.0,[](double TA, double TB) 
+        {return max(TA,std::abs(TB));} ); 
+    double l2 = sqrt(accumulate(p.x.begin(),p.x.end(),0.0,[](double TA, double TB) 
+        {return TA+TB*TB;} )); 
+    printf("%4d %20.15g %20.15g %20.15g %10.5g %d %5.1e\n",it,2*cost,ma,l2,sqalpha,bad,
+        (costlast-cost)/costlast );
     if (cost < 1e-27)
       break;
-    if (bad >= 3) {
+    if (bad >= 3 || cost > costlast) {
       if (sqalpha == 0.0 && bad >= 20) {
         break;
       } else if (sqalpha > 0.0 && sqalpha < 1e-4) {
