@@ -69,7 +69,7 @@ MyTerminationType try1(int r, vector<double> &x, bool stop_on_br = true) {
       }
     }
     double cost; p.p.Evaluate(Problem::EvaluateOptions(),&cost,0,0,0);
-    if ((costlast - cost) / costlast < 2e-4) {
+    if ((costlast - cost) / costlast < 1e-4) {
       bad++;
     } else {
       bad=0;
@@ -83,7 +83,7 @@ MyTerminationType try1(int r, vector<double> &x, bool stop_on_br = true) {
     if (cost < 1e-27)
       break;
     if (bad >= 3) {
-      if (sqalpha == 0.0 && bad >= 1000) {
+      if (sqalpha == 0.0 && bad >= 20) {
         break;
       } else if (sqalpha > 0.0 && sqalpha < 1e-4) {
         sqalpha = 0.0;
@@ -162,6 +162,7 @@ int main(int argc, const char** argv) {
       rp[i] /= rptot;
     }
   };
+  normalize();
 
   auto update = [&](int r, MyTerminationType res) {
     if (res == BORDER_LIKELY) {
