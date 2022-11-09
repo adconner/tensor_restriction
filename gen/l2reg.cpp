@@ -126,6 +126,8 @@ MyTerminationType l2_reg(MyProblem &p, const Solver::Options &opts, double *sqal
   return callback->termination_ == CONTINUE ? UNKNOWN : callback->termination_;
 }
 
+// stop_on_br is more like stop on probable border. It doesn't stop when it is
+// suspected that the found decompoition is very likely a border decomposition
 MyTerminationType l2_reg_search(MyProblem &p, double target_relative_decrease, 
     double relftol, bool stop_on_br, int max_num_iterations, double sqinit) {
   Solver::Options options;
@@ -159,7 +161,7 @@ MyTerminationType l2_reg_search(MyProblem &p, double target_relative_decrease,
       if (sqalpha[0] == 0.0 && relative_decrease > 0 && relative_decrease < relftol) {
         return s.cost < 2e-3 ? BORDER_LIKELY : NO_SOLUTION;
       }
-      if (stop_on_br && s.cost < 0.2) { // consider border solution
+      if (s.cost < 0.2) { // consider border solution
         // border rank
         // f low and df/f also low
         // ma consistently increasing
@@ -168,7 +170,10 @@ MyTerminationType l2_reg_search(MyProblem &p, double target_relative_decrease,
         } else {
           consecutive_border_evidence = 0;
         }
-        if (ma > 10 || consecutive_border_evidence >= 6) {
+        if (s.cost < 5e-5 && consecutive_border_evidence >= 6) {
+          return BORDER_LIKELY;
+        }
+        if (stop_on_br && (ma > 10 || consecutive_border_evidence >= 6)) {
           return BORDER_LIKELY;
         }
       }
