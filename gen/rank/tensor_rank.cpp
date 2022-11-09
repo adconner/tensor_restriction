@@ -54,6 +54,7 @@ MyTerminationType try1(int r, vector<double> &x, bool stop_on_br = true) {
   double costlast=1e7;
   int bad = 0;
   double sqalpha = 0.1;
+  int fac = 0;
   for (int it=0; it<2000; ++it) {
     if (SYM) {
       if (!tight) {
@@ -63,10 +64,12 @@ MyTerminationType try1(int r, vector<double> &x, bool stop_on_br = true) {
       }
     } else {
       if (!tight) {
-        als(p.x.data(),it%3,sqalpha);
+        als(p.x.data(),fac,sqalpha);
       } else {
-        als_some(p.x.data(),eqs,it%3,sqalpha);
+        als_some(p.x.data(),eqs,fac,sqalpha);
       }
+      uniform_int_distribution<int> dist(0,1);
+      fac = (fac + dist(rng)) % 3;
     }
     double cost; p.p.Evaluate(Problem::EvaluateOptions(),&cost,0,0,0);
     if ((costlast - cost) / costlast < 5e-5) {
