@@ -167,7 +167,20 @@ int main(int argc, const char** argv) {
   normalize();
 
   auto update = [&](int r, MyTerminationType res) {
-    if (res == BORDER) {
+    if (res == SOLUTION) {
+      for (int i=r+1; i <= rupper; ++i) {
+        rp[i] = 0.0;
+        brp[i] = 0.0;
+      }
+      if (r < rhi) {
+        rhi = r;
+        bestr = x;
+      }
+      if (r < brhi) {
+        brhi = r;
+        bestbr = x;
+      }
+    } else if (res == BORDER) {
       double mult = 0.5;
       for (int i=r; i >= 0; --i) {
         rp[i] *= mult;
@@ -180,18 +193,16 @@ int main(int argc, const char** argv) {
         brhi = r;
         bestbr = x;
       }
-    } else if (res == SOLUTION) {
+    } else if (res == BORDER_OR_NO_SOLUTION) {
+      double mult = 0.5;
+      for (int i=r; i >= 0; --i) {
+        rp[i] *= mult;
+        mult *= 0.5;
+      }
+      mult = 0.9;
       for (int i=r+1; i <= rupper; ++i) {
-        rp[i] = 0.0;
-        brp[i] = 0.0;
-      }
-      if (r < rhi) {
-        rhi = r;
-        bestr = x;
-      }
-      if (r < brhi) {
-        brhi = r;
-        bestbr = x;
+        brp[i] *= mult;
+        mult *= 0.9;
       }
     } else {
       if (res != NO_SOLUTION) {
