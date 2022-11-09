@@ -159,13 +159,13 @@ MyTerminationType l2_reg_search(MyProblem &p, double target_relative_decrease,
         return SOLUTION;
       }
       if (sqalpha[0] == 0.0 && relative_decrease > 0 && relative_decrease < relftol) {
-        return s.cost < 2e-3 ? BORDER_LIKELY : NO_SOLUTION;
+        return NO_SOLUTION;
       }
       if (s.cost < 0.2) { // consider border solution
         // border rank
         // f low and df/f also low
         // ma consistently increasing
-        if (ma > ma_last && ma > 2 && relative_decrease < 0.1) {
+        if (ma > ma_last && ma > 2 && relative_decrease < 0.05) {
           consecutive_border_evidence += 1;
         } else {
           consecutive_border_evidence = 0;
