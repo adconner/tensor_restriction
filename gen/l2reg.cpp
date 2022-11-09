@@ -157,7 +157,7 @@ MyTerminationType l2_reg_search(MyProblem &p, double target_relative_decrease,
         return SOLUTION;
       }
       if (sqalpha[0] == 0.0 && relative_decrease > 0 && relative_decrease < relftol) {
-        return s.cost < 1e-2 ? BORDER_LIKELY : NO_SOLUTION;
+        return s.cost < 2e-3 ? BORDER_LIKELY : NO_SOLUTION;
       }
       if (stop_on_br && s.cost < 0.2) { // consider border solution
         // border rank

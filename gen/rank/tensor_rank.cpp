@@ -99,7 +99,7 @@ MyTerminationType try1(int r, vector<double> &x, bool stop_on_br = true) {
     costlast = cost;
   }
 
-  MyTerminationType term = l2_reg_search(p, 1e-3, 1e-3, stop_on_br, 3000, 0.0);
+  MyTerminationType term = l2_reg_search(p, 2e-3, 1e-3, stop_on_br, 3000, 0.0);
   x.swap(p.x);
   return term;
 }
