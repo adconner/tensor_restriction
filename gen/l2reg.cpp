@@ -176,7 +176,7 @@ MyTerminationType l2_reg_search(MyProblem &p, double target_relative_decrease,
         } else {
           consecutive_border_evidence = 0;
         }
-        if (s.cost < 5e-5 && consecutive_border_evidence >= 6) {
+        if (s.cost < 2e-3 && consecutive_border_evidence >= 6) {
           return BORDER;
         }
         if (stop_on_br && (ma > 10 || consecutive_border_evidence >= 6)) {
