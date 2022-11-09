@@ -77,12 +77,12 @@ MyTerminationType try1(int r, vector<double> &x, bool stop_on_br = true) {
     } else {
       bad=0;
     }
-    double ma = accumulate(p.x.begin(),p.x.end(),0.0,[](double TA, double TB) 
-        {return max(TA,std::abs(TB));} ); 
-    double l2 = sqrt(accumulate(p.x.begin(),p.x.end(),0.0,[](double TA, double TB) 
-        {return TA+TB*TB;} )); 
-    printf("%4d %20.15g %20.15g %20.15g %10.5g %d %5.1e\n",it,2*cost,ma,l2,sqalpha,bad,
-        (costlast-cost)/costlast );
+    /* double ma = accumulate(p.x.begin(),p.x.end(),0.0,[](double TA, double TB) */ 
+    /*     {return max(TA,std::abs(TB));} ); */ 
+    /* double l2 = sqrt(accumulate(p.x.begin(),p.x.end(),0.0,[](double TA, double TB) */ 
+    /*     {return TA+TB*TB;} )); */ 
+    /* printf("%4d %20.15g %20.15g %20.15g %10.5g %d %5.1e\n",it,2*cost,ma,l2,sqalpha,bad, */
+    /*     (costlast-cost)/costlast ); */
     if (cost < 1e-27)
       break;
     if (bad >= 3 || cost > costlast) {
@@ -151,7 +151,7 @@ int main(int argc, const char** argv) {
     brp[i] = rp[i] = 0.0;
   }
 
-  int brhi = rupper+1, rhi = rupper+1;
+  int brhi = rupper, rhi = rupper;
   vector<double> x, bestr, bestbr;
 
   auto normalize = [&] () {
@@ -210,15 +210,14 @@ int main(int argc, const char** argv) {
   auto nextbrcheck = [&]() {
     double p = brp[0];
     for (int r=1; r <= rupper; ++r) {
-      double pcur = p + brp[r];
-      if (pcur >= 0.5) {
+      p += brp[r];
+      if (p >= 0.5) {
         if (r == brhi) {
-          return make_pair(r-1, p);
+          return make_pair(r-1, 1-brp[r]);
         } else {
-          return make_pair(r, 1.0);
+          return make_pair(r, 1-brp[r]);
         }
       }
-      p = pcur;
     }
     assert(false);
   };
@@ -226,15 +225,14 @@ int main(int argc, const char** argv) {
   auto nextrcheck = [&]() {
     double p = rp[0];
     for (int r=1; r <= rupper; ++r) {
-      double pcur = p + rp[r];
-      if (pcur >= 0.5) {
+      p += rp[r];
+      if (p >= 0.5) {
         if (r == rhi) {
-          return make_pair(r-1, p);
+          return make_pair(r-1, 1-rp[r]);
         } else {
-          return make_pair(r, 1.0);
+          return make_pair(r, 1-rp[r]);
         }
       }
-      p = pcur;
     }
     assert(false);
   };
