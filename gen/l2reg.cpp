@@ -41,7 +41,7 @@ MyTerminationType solve(MyProblem &p, Solver::Summary &summary,
         return SOLUTION;
       }
       if (relative_decrease > 0 && relative_decrease < relftol) {
-        return s.cost < 1e-2 ? BORDER_LIKELY : NO_SOLUTION;
+        return s.cost < 1e-2 ? BORDER_OR_NO_SOLUTION : NO_SOLUTION;
       }
       return CONTINUE;
     }));
@@ -141,6 +141,7 @@ MyTerminationType l2_reg_search(MyProblem &p, double target_relative_decrease,
   deque<bool> recent_drop;
 
   double ma_last = 1.0;
+  int stop_counter = 0;
   int consecutive_border_evidence = 0;
 
   vector<double> sqalpha(N,sqinit), b(N,0.0);
@@ -159,6 +160,11 @@ MyTerminationType l2_reg_search(MyProblem &p, double target_relative_decrease,
         return SOLUTION;
       }
       if (sqalpha[0] == 0.0 && relative_decrease > 0 && relative_decrease < relftol) {
+        stop_counter++;
+      } else {
+        stop_counter = 0;
+      }
+      if (stop_counter >= 4) {
         return NO_SOLUTION;
       }
       if (s.cost < 0.2) { // consider border solution
@@ -171,10 +177,10 @@ MyTerminationType l2_reg_search(MyProblem &p, double target_relative_decrease,
           consecutive_border_evidence = 0;
         }
         if (s.cost < 5e-5 && consecutive_border_evidence >= 6) {
-          return BORDER_LIKELY;
+          return BORDER;
         }
         if (stop_on_br && (ma > 10 || consecutive_border_evidence >= 6)) {
-          return BORDER_LIKELY;
+          return BORDER_OR_NO_SOLUTION;
         }
       }
       if (relative_decrease > 0 && relative_decrease < target_relative_decrease) { // drop sqalpha

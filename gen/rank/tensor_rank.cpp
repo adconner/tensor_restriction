@@ -167,7 +167,7 @@ int main(int argc, const char** argv) {
   normalize();
 
   auto update = [&](int r, MyTerminationType res) {
-    if (res == BORDER_LIKELY) {
+    if (res == BORDER) {
       double mult = 0.5;
       for (int i=r; i >= 0; --i) {
         rp[i] *= mult;
@@ -242,7 +242,7 @@ int main(int argc, const char** argv) {
     while (p > pthresh) {
       printf("border rank try %d %g\n", r,p);
       copy(brp.begin(),brp.end(),ostream_iterator<double>(cout," ")); cout << endl;
-      auto res = try1(r,x);
+      auto res = try1(r,x,false);
       update(r,res);
       tie(r,p) = nextbrcheck();
     }
