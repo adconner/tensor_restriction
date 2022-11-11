@@ -83,7 +83,7 @@ MyTerminationType try1(int r, vector<double> &x, bool stop_on_br = true) {
     /*     {return TA+TB*TB;} )); */ 
     /* printf("%4d %20.15g %20.15g %20.15g %10.5g %d %5.1e\n",it,2*cost,ma,l2,sqalpha,bad, */
     /*     (costlast-cost)/costlast ); */
-    if (cost < 1e-27)
+    if (sqalpha == 0.0 && cost > costlast) 
       break;
     if (bad >= 3 || cost > costlast) {
       if (sqalpha == 0.0 && bad >= 20) {
