@@ -42,13 +42,14 @@ int main(int argc, const char** argv) {
   for (int i=0; i<TA; ++i) {
     for (int j=0; j<TB; ++j) {
       for (int k=0; k<TC; ++k) {
-        /* if (i <= j && j <= k) { */
-        /* if (i<j && j<k) { */
-        if (TIGHTA[i] + TIGHTB[j] + TIGHTC[k] <= 0) {
+        if (
+#ifdef SYM
+            i <= j && j <= k &&
+#endif
+            TIGHTA[i] + TIGHTB[j] + TIGHTC[k] <= 0) {
           eqs.push_back(make_tuple(i,j,k));
           AddToProblem(p.p,p.x.data(),(i*TB+j)*TC+k);
         }
-        /* } */
       }
     }
   }
@@ -60,10 +61,13 @@ int main(int argc, const char** argv) {
   int bad = 0;
   double sqalpha = 0.1;
   for (int it=0; it<2000; ++it) {
+#ifdef SYM
+    als_sym(p.x.data(),sqalpha);
+    /* als_sym_some(p.x.data(),eqs,sqalpha); */
+#else
     als(p.x.data(),it%3,sqalpha);
     /* als_some(p.x.data(),eqs,it%3,sqalpha); */
-    /* als_sym_some(p.x.data(),eqs,sqalpha); */
-    /* als_sym(p.x.data(),sqalpha); */
+#endif
     double cost; p.p.Evaluate(Problem::EvaluateOptions(),&cost,0,0,0);
     double ma = accumulate(p.x.begin(),p.x.end(),0.0,[](double a, double b) 
         {return max(a,std::abs(b));} ); 
