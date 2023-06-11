@@ -167,7 +167,7 @@ MyTerminationType l2_reg_search(MyProblem &p, double target_relative_decrease,
       if (stop_counter >= 4) {
         return NO_SOLUTION;
       }
-      if (s.cost < 0.2) { // consider border solution
+      if (sqalpha[0] == 0.0 && s.cost < 0.2) { // consider border solution
         // border rank
         // f low and df/f also low
         // ma consistently increasing
