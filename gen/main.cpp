@@ -168,7 +168,7 @@ int main(int argc, const char** argv) {
   /* term = l2_reg_search(p, 1e-3, 1e-5, true, 3000, 0.1); */
   /* term = l2_reg_search(p, 1e-3, 1e-3, true, 3000, 0.1); */
 
-  term = l2_reg_search(p, 1e-3, 1e-3, false, 3000, 0.0);
+  term = l2_reg_search(p, 5e-3, 1e-5, false, 10000, 0.0, false);
 
   /* return 0; */
   /* term = l2_reg_search(p, 1e-2, 1e-5, true, 1000, 0.1); */
