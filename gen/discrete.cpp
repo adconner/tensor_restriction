@@ -134,7 +134,8 @@ void greedy_discrete(MyProblem &p, int &successes, DiscreteAttempt da, int tryli
               && summary.final_cost <= std::max(better_frac*icost,solved_fine) 
               && *max_element(p.x.begin(),p.x.end()) < max_elem) { // improved or good enough
             if (verbose) cout << " success " << summary.iterations.size() - 1
-                << " iterations " << summary.final_cost << endl;
+                << " iterations " << summary.final_cost << " ma " 
+                << *max_element(p.x.begin(),p.x.end()) << endl;
 #ifdef EQ_DISCRETE
             x[xi*MULT] = target.real();
             if (MULT == 2) x[xi*MULT + 1] = target.imag();
@@ -148,7 +149,8 @@ void greedy_discrete(MyProblem &p, int &successes, DiscreteAttempt da, int tryli
             goto found;
           }
           if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
-              << summary.final_cost << endl;
+              << summary.final_cost << endl << " ma " 
+              << *max_element(p.x.begin(),p.x.end()) << endl;
 #ifdef EQ_DISCRETE
           p.RemoveResidualBlock(rid);
 #else
