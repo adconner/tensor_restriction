@@ -149,7 +149,7 @@ void greedy_discrete(MyProblem &p, int &successes, DiscreteAttempt da, int tryli
             goto found;
           }
           if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
-              << summary.final_cost << endl << " ma " 
+              << summary.final_cost << " ma " 
               << *max_element(p.x.begin(),p.x.end()) << endl;
 #ifdef EQ_DISCRETE
           p.RemoveResidualBlock(rid);
