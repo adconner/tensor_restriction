@@ -28,7 +28,7 @@ MyTerminationType solve(MyProblem &p, Solver::Summary &summary,
   options.parameter_tolerance = 1e-30;
   options.gradient_tolerance = 1e-30;
   options.max_num_iterations = max_num_iterations;
-
+  int consecutive_iters_below_relftol = 0;
   unique_ptr<FunctorCallback> callback(new FunctorCallback([&](const IterationSummary &s){
       /* if (verbose) { */
       /*   double ma = accumulate(p.x.begin(),p.x.end(),0.0,[](double a, double b) */ 
@@ -41,6 +41,11 @@ MyTerminationType solve(MyProblem &p, Solver::Summary &summary,
         return SOLUTION;
       }
       if (relative_decrease > 0 && relative_decrease < relftol) {
+        consecutive_iters_below_relftol++;
+      } else {
+        consecutive_iters_below_relftol = 0;
+      }
+      if (consecutive_iters_below_relftol >= 4) {
         return s.cost < 1e-2 ? BORDER_OR_NO_SOLUTION : NO_SOLUTION;
       }
       return CONTINUE;
@@ -141,7 +146,7 @@ MyTerminationType l2_reg_search(MyProblem &p, double target_relative_decrease,
   deque<bool> recent_drop;
 
   double ma_last = 1.0;
-  int stop_counter = 0;
+  int consecutive_iters_below_relftol = 0;
   int consecutive_border_evidence = 0;
 
   vector<double> sqalpha(N,sqinit), b(N,0.0);
@@ -160,11 +165,11 @@ MyTerminationType l2_reg_search(MyProblem &p, double target_relative_decrease,
         return SOLUTION;
       }
       if (sqalpha[0] == 0.0 && relative_decrease > 0 && relative_decrease < relftol) {
-        stop_counter++;
+        consecutive_iters_below_relftol++;
       } else {
-        stop_counter = 0;
+        consecutive_iters_below_relftol = 0;
       }
-      if (stop_counter >= 4) {
+      if (consecutive_iters_below_relftol >= 4) {
         return NO_SOLUTION;
       }
       if (sqalpha[0] == 0.0 && s.cost < 0.2) { // consider border solution
@@ -218,19 +223,27 @@ double minimize_max_abs(MyProblem &p, double eps, double step_mult, double relft
   double lo = 0.0;
   double hi = max_abs(p);
   double cur = hi*step_mult;
-
+  
   vector<double> sqalpha(N,1.0), b(N,1.0);
   while (hi-lo > eps) {
+    double icost; p.p.Evaluate(Problem::EvaluateOptions(),&icost,0,0,0);
     /* cout << lo << " " << hi << endl; */
     vector<double> sav(p.x.begin(),p.x.end());
     for (int i=0; i<b.size(); ++i)
       b[i] = cur;
+    int consecutive_iters_below_relftol = 0;
     MyTerminationType termination = l2_reg(p,options,
         sqalpha.data(),b.data(), [&] (const IterationSummary &s) {
       double relative_decrease = s.cost_change / s.cost;
-      if (s.cost < solved_fine) { // sol
+      if (s.cost < max(better_frac*icost,solved_fine)) { // sol
         return SOLUTION;
-      } else if (relative_decrease > 0 && relative_decrease < relftol) { // no sol
+      }
+      if (relative_decrease > 0 && relative_decrease < relftol) { 
+        consecutive_iters_below_relftol++;
+      } else {
+        consecutive_iters_below_relftol = 0;
+      }
+      if (consecutive_iters_below_relftol >= 4) {
         return NO_SOLUTION;
       }
       return CONTINUE;
