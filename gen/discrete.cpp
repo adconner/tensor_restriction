@@ -132,10 +132,10 @@ void greedy_discrete(MyProblem &p, int &successes, DiscreteAttempt da, int tryli
           // happens (if it is good assignment it will usually be a success free)
           if (summary.termination_type != FAILURE 
               && summary.final_cost <= std::max(better_frac*icost,solved_fine) 
-              && *max_element(p.x.begin(),p.x.end()) < max_elem) { // improved or good enough
+              && max_abs(p) < max_elem) { // improved or good enough
             if (verbose) cout << " success " << summary.iterations.size() - 1
                 << " iterations " << summary.final_cost << " ma " 
-                << *max_element(p.x.begin(),p.x.end()) << endl;
+                << max_abs(p) << endl;
 #ifdef EQ_DISCRETE
             x[xi*MULT] = target.real();
             if (MULT == 2) x[xi*MULT + 1] = target.imag();
@@ -143,14 +143,14 @@ void greedy_discrete(MyProblem &p, int &successes, DiscreteAttempt da, int tryli
             p.RemoveResidualBlock(rid);
 #endif
             successes++;
-            minimize_max_abs(p,1e-1);
+            minimize_max_abs(p,1e-2);
             /* l2_reg_search(...) */
             logsol(p.x,"out_partial_sparse.txt");
             goto found;
           }
           if (verbose) cout << " fail " << summary.iterations.size() - 1 << " iterations "
               << summary.final_cost << " ma " 
-              << *max_element(p.x.begin(),p.x.end()) << endl;
+              << max_abs(p) << endl;
 #ifdef EQ_DISCRETE
           p.RemoveResidualBlock(rid);
 #else
@@ -234,7 +234,7 @@ void greedy_discrete_careful(MyProblem &p, int &successes, DiscreteAttempt da) {
 
       if (summary.termination_type != FAILURE 
           && summary.final_cost <= std::max(better_frac*icost,solved_fine) 
-          && *max_element(p.x.begin(),p.x.end()) < max_elem) { // improved or good enough
+          && max_abs(p) < max_elem) { // improved or good enough
         minimize_max_abs(p,1e-1);
         double cost = max_abs(p);
         ok.push_back(make_tuple(cost,xi,p.x));
