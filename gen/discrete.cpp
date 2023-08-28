@@ -124,7 +124,8 @@ void greedy_discrete(MyProblem &p, int &successes, DiscreteAttempt da, int tryli
           ((Equal *)p.GetCostFunctionForResidualBlock(rid))->sqalpha = discrete_sqalpha;
 #endif
           Solver::Summary summary;
-          solve(p,summary,1e-3,100);
+          solve(p,summary,1e-3,200);
+          /* solve(p,summary,1e-6,4000); */
           tries++;
           // If we have set constant the last variable the solver will not be
           // called and will terminate with FAILURE and summary will be
