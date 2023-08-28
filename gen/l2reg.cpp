@@ -219,17 +219,25 @@ double minimize_max_abs(MyProblem &p, double eps, double step_mult, double relft
   options.gradient_tolerance = 1e-30;
   options.max_num_iterations = 10000;
   /* options.minimizer_progress_to_stdout = true; */
+  vector<double> sqalpha(N,1.0), b(N,1.0);
+  vector<int> ixs(N);
+  for (int i=0; i<N; ++i)
+    ixs[i] = i;
+  return minimize_max_abs1(p,sqalpha,b,options,ixs,eps,step_mult,relftol);
+}
 
+double minimize_max_abs1(MyProblem &p, vector<double> &sqalpha,
+                         vector<double> &b, const Solver::Options &options,
+                         const vector<int> &ixs, double eps, double step_mult,
+                         double relftol) {
   double lo = 0.0;
   double hi = max_abs(p);
   double cur = hi*step_mult;
-  
-  vector<double> sqalpha(N,1.0), b(N,1.0);
   while (hi-lo > eps) {
     double icost; p.p.Evaluate(Problem::EvaluateOptions(),&icost,0,0,0);
-    /* cout << lo << " " << hi << endl; */
+    cout << lo << " " << hi << " " << icost << endl;
     vector<double> sav(p.x.begin(),p.x.end());
-    for (int i=0; i<b.size(); ++i)
+    for (auto i : ixs)
       b[i] = cur;
     int consecutive_iters_below_relftol = 0;
     MyTerminationType termination = l2_reg(p,options,
@@ -261,7 +269,6 @@ double minimize_max_abs(MyProblem &p, double eps, double step_mult, double relft
       copy(sav.begin(),sav.end(),p.x.begin());
     }
   }
-
   return hi;
 }
 

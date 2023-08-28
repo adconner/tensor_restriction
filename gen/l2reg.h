@@ -21,6 +21,10 @@ MyTerminationType l2_reg_search(MyProblem &problem,
                                 bool refine_border = false);
 double minimize_max_abs(MyProblem &problem, double eps=1e-3, 
     double step_mult = 0.95, double relftol = 1e-4);
+double minimize_max_abs1(MyProblem &p, vector<double> &sqalpha,
+                         vector<double> &b, const Solver::Options &options,
+                         const vector<int> &ixs, double eps, double step_mult,
+                         double relftol);
 void sparsify(MyProblem &problem, double B, double relftol);
 
 #endif
