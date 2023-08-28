@@ -231,7 +231,14 @@ double minimize_max_abs1(MyProblem &p, vector<double> &sqalpha,
                          const vector<int> &ixs, double eps, double step_mult,
                          double relftol) {
   double lo = 0.0;
-  double hi = max_abs(p);
+  double hi = 0.0;
+  for (auto i : ixs) {
+    if (MULT == 1) {
+      hi = max(hi,abs(p.x[i]));
+    } else {
+      hi = max(hi,abs(cx(p.x[2*i],p.x[2*i+1])));
+    }
+  }
   double cur = hi*step_mult;
   while (hi-lo > eps) {
     double icost; p.p.Evaluate(Problem::EvaluateOptions(),&icost,0,0,0);
@@ -243,7 +250,7 @@ double minimize_max_abs1(MyProblem &p, vector<double> &sqalpha,
     MyTerminationType termination = l2_reg(p,options,
         sqalpha.data(),b.data(), [&] (const IterationSummary &s) {
       double relative_decrease = s.cost_change / s.cost;
-      if (s.cost < max(better_frac*icost,solved_fine)) { // sol
+      if (s.cost < max(1.01*icost,solved_fine)) { // sol
         return SOLUTION;
       }
       if (relative_decrease > 0 && relative_decrease < relftol) { 
