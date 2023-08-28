@@ -272,6 +272,46 @@ double minimize_max_abs1(MyProblem &p, vector<double> &sqalpha,
   return hi;
 }
 
+void separate_orders1(MyProblem &p, double eps, double step_mult, double relftol) {
+  Solver::Options options;
+  solver_opts(options);
+  options.function_tolerance = 1e-30;
+  options.parameter_tolerance = 1e-30;
+  options.gradient_tolerance = 1e-30;
+  options.max_num_iterations = 10000;
+  /* options.minimizer_progress_to_stdout = true; */
+  vector<double> sqalpha(N,1.0), b(N,1.0);
+  set<int> S;
+  for (int i=0; i<N; ++i)
+    S.insert(i);
+  
+  while (!S.empty()) {
+    minimize_max_abs1(p,sqalpha,b,options,vector<int>(S.begin(),S.end()),
+                      eps,step_mult,relftol);
+    minimize_max_abs1(p,sqalpha,b,options,vector<int>(S.begin(),S.end()),
+                      eps,step_mult,relftol);
+    minimize_max_abs1(p,sqalpha,b,options,vector<int>(S.begin(),S.end()),
+                      eps,step_mult,relftol);
+    int maxi = -1;
+    double maxabs = 0.0;
+    for (auto i : S) {
+      double cur = 0.0;
+      if (MULT == 1) {
+        cur = abs(p.x[i]);
+      } else {
+        cur = abs(cx(p.x[2*i],p.x[2*i+1]));
+      }
+      if (cur > maxabs) {
+        maxi = i;
+        maxabs = cur;
+      }
+    }
+    cout << "separate_orders " << S.size() << " " << maxabs << endl;
+    S.erase(maxi);
+    sqalpha[maxi] = 0.0; // optional
+  }
+}
+
 
 void sparsify(MyProblem &p, double B, double relftol) {
   Solver::Options options;

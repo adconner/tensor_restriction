@@ -25,6 +25,8 @@ double minimize_max_abs1(MyProblem &p, vector<double> &sqalpha,
                          vector<double> &b, const Solver::Options &options,
                          const vector<int> &ixs, double eps, double step_mult,
                          double relftol);
+void separate_orders1(MyProblem &p, double eps, double step_mult = 0.95,
+                      double relftol = 1e-4);
 void sparsify(MyProblem &problem, double B, double relftol);
 
 #endif
