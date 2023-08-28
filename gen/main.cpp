@@ -168,7 +168,17 @@ int main(int argc, const char** argv) {
   /* term = l2_reg_search(p, 1e-3, 1e-5, true, 3000, 0.1); */
   /* term = l2_reg_search(p, 1e-3, 1e-3, true, 3000, 0.1); */
 
-  term = l2_reg_search(p, 5e-3, 1e-5, false, 10000, 0.0, false);
+  int cnt = 0;
+  for (int i = 0; i < N; ++i) {
+    if (p.x[i] == 0.0 || p.x[i] == 1.0 || p.x[i] == -1.0) {
+      set_value_constant(p,i);
+      cnt++;
+    }
+  }
+  cout << cnt << " set constant" << endl;
+
+  term = l2_reg_search(p, 5e-3, 5e-4, false, 10000, 0.1, false);
+  /* term = l2_reg_search(p, 5e-3, 1e-15, false, 50000, 0.0, true); */
 
   /* return 0; */
   /* term = l2_reg_search(p, 1e-2, 1e-5, true, 1000, 0.1); */
@@ -183,10 +193,20 @@ int main(int argc, const char** argv) {
   /* cout << s.FullReport() << endl; */
   /* logsol(p.x,"out.txt"); */
   /* return 0; */
-
+  
+  switch (term) {
+    case CONTINUE: cout << "CONTINUE" << endl; break;
+    case CONTINUE_RESET: cout << "CONTINUE_RESET" << endl; break;
+    case SOLUTION: cout << "SOLUTION" << endl; break;
+    case BORDER: cout << "BORDER" << endl; break;
+    case BORDER_OR_NO_SOLUTION: cout << "BORDER_OR_NO_SOLUTION" << endl; break;
+    case NO_SOLUTION: cout << "NO_SOLUTION" << endl; break;
+    case UNKNOWN: cout << "UNKNOWN" << endl; break;
+  }
 
   logsol(p.x,"out_dense.txt");
-  /* if (term == SOLUTION || term == BORDER_LIKELY) { */
+  
+  /* if (term == SOLUTION || term == BORDER) { */
   /*   return 0; */
   /* } else { */
   /*   return 1; */
@@ -203,8 +223,10 @@ int main(int argc, const char** argv) {
   /* } */
 /* return 1; */
 
-  if (term == SOLUTION) {
-    minimize_max_abs(p, 1e-1);
+  /* if (term == SOLUTION) { */
+  /* if (term == SOLUTION || term == BORDER) { */
+  if (true){
+    minimize_max_abs(p, 0.01);
     /* sparsify(p, 1.0, 1e-4); */
     int successes = 0;
     /* greedy_discrete_careful(p, successes, DA_ZERO); */
