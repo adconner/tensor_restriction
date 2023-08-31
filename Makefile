@@ -4,7 +4,7 @@ CFLAGS=-g -O3 -ffast-math -march=native
 # CXXFLAGS=-std=c++20 -I/usr/include/eigen3 $(shell pkg-config --cflags lapacke clp) $(CFLAGS)
 # LDFLAGS=-llapacke $(shell pkg-config --libs lapacke clp) -lceres -lcxsparse -lcholmod -lumfpack -lamd -lcamd -lcolamd -lccolamd -lbtf -lsuitesparseconfig -lmetis -llapack -lopenblas -lglog -lomp -pthread  $(CXXFLAGS)
 CXXFLAGS=-std=c++20 $(shell pkg-config --cflags eigen3 lapacke) $(CFLAGS)
-LDFLAGS=-lceres $(shell pkg-config --libs lapacke) -lglog
+LDFLAGS=-lceres $(shell pkg-config --libs lapacke)
 CC=clang
 CXX=clang++
 

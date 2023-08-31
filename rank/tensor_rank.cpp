@@ -105,7 +105,6 @@ MyTerminationType try1(int r, vector<double> &x, bool stop_on_br = true) {
 }
 
 int main(int argc, const char** argv) {
-  google::InitGoogleLogging(argv[0]);
   cout.precision(numeric_limits<double>::digits10);
   random_device rd;
   rng.seed(rd());
