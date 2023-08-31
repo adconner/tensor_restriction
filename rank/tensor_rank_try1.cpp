@@ -73,7 +73,7 @@ int main(int argc, const char** argv) {
 
   fill_initial(p,"");
 
-  // pure als followed by trust region refine
+  // pure als
   double costlast=1e7;
   int bad = 0;
   double sqalpha = 0.1;
@@ -132,7 +132,7 @@ int main(int argc, const char** argv) {
   /* term = l2_reg_search(p, 1e-3, 1e-5, true, 3000, 0.1); */
   /* term = l2_reg_search(p, 1e-3, 1e-3, true, 3000, 0.1); */
 
-  term = l2_reg_search(p, 1e-3, 1e-3, false, 3000, 0.0);
+  term = l2_reg_search(p, 5e-3, 5e-4, false, 10000, 0.0, false);
   
   switch (term) {
     case CONTINUE: cout << "CONTINUE" << endl; break;
