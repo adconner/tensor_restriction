@@ -1,7 +1,7 @@
 # CFLAGS=-g -fsanitize=address
 CFLAGS=-g -O3 -ffast-math -march=native
 # CFLAGS=-g
-CFLAGS += -DCX
+# CFLAGS += -DCX
 CXXFLAGS=-std=c++20 $(shell pkg-config --cflags eigen3 lapacke) $(CFLAGS)
 LDFLAGS=-lceres $(shell pkg-config --libs lapacke) -lglog
 CC=clang
