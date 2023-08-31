@@ -185,8 +185,12 @@ int main(int argc, const char** argv) {
     /* greedy_discrete_careful(p, successes, DA_ZERO); */
     /* greedy_discrete_careful(p, successes, DA_E3); */
     greedy_discrete(p, successes, DA_ZERO, N);
-    /* greedy_discrete(p, successes, DA_PM_ONE, N); */
-    greedy_discrete(p, successes, DA_E3, N);
+    minimize_max_abs(p, 0.01);
+    if (MULT == 2) {
+      greedy_discrete(p, successes, DA_E3, N);
+    } else {
+      greedy_discrete(p, successes, DA_PM_ONE, N);
+    }
     /* greedy_discrete_pairs(p, N*100); */
     double ma = minimize_max_abs(p);
     cout << "ma " << ma << endl;
