@@ -37,7 +37,6 @@ int main(int argc, const char** argv) {
   /*   rids.push_back(AddToProblem(p.p,p.x.data(),i)); */
   /* } */
 
-
   vector<tuple<int,int,int> > eqs;
   for (int i=0; i<TA; ++i) {
     for (int j=0; j<TB; ++j) {
@@ -98,9 +97,6 @@ int main(int argc, const char** argv) {
   double cost; p.p.Evaluate(Problem::EvaluateOptions(),&cost,0,0,0);
   printf("%20.15g\n",2*cost);
   logsol(p.x,"out_dense.txt");
-  /* if (2*cost > 1.0) { */
-  /*   return 1; */
-  /* } */
 
   /* trust_region_f(p,[&](){ */
   /*     for (int it=0; it<3*4; ++it) { */
@@ -145,18 +141,6 @@ int main(int argc, const char** argv) {
   /*   it++; */
   /* },1e-7,1000); */
 
-
-  /* /1* int r = 21, R = 23; *1/ */
-  /* /1* for (int i=0; i<N/R; ++i) { *1/ */
-  /* /1*   for (int j=r; j<R; ++j) { *1/ */
-  /* /1*     int k=i*R+j; *1/ */
-  /* /1*     for (int l=0; l<MULT; ++l) { *1/ */
-  /* /1*       p.x[MULT*k+l] = 0.0; *1/ */
-  /* /1*     } *1/ */
-  /* /1*     set_value_constant(p,k); *1/ */
-  /* /1*   } *1/ */
-  /* /1* } *1/ */
-
   MyTerminationType term = NO_SOLUTION;
 
   /* for (int bi=0; bi < BLOCKS; ++bi) { */
@@ -180,20 +164,6 @@ int main(int argc, const char** argv) {
   term = l2_reg_search(p, 5e-3, 5e-4, false, 10000, 0.1, false);
   /* term = l2_reg_search(p, 5e-3, 1e-15, false, 50000, 0.0, true); */
 
-  /* return 0; */
-  /* term = l2_reg_search(p, 1e-2, 1e-5, true, 1000, 0.1); */
-  /* term = l2_reg_search(p, 1e-2, 1e-5, false, 100, 0.0001); */
-  /* term = l2_reg_search(p, 1e-2, 1e-16, true, 100); */
-  /* term = SOLUTION; */
-
-  /* int successes = 0; */
-  /* greedy_discrete(p, successes, DA_ZERO, N); */
-  /* greedy_discrete(p, successes, DA_E3, N); */
-  /* Solver::Summary s; term = solve(p, s, 1e-13); */
-  /* cout << s.FullReport() << endl; */
-  /* logsol(p.x,"out.txt"); */
-  /* return 0; */
-  
   switch (term) {
     case CONTINUE: cout << "CONTINUE" << endl; break;
     case CONTINUE_RESET: cout << "CONTINUE_RESET" << endl; break;
@@ -205,27 +175,10 @@ int main(int argc, const char** argv) {
   }
 
   logsol(p.x,"out_dense.txt");
-  
-  /* if (term == SOLUTION || term == BORDER) { */
-  /*   return 0; */
-  /* } else { */
-  /*   return 1; */
-  /* } */
 
-  /* if (term == SOLUTION) { */
-  /*   logsol(p.x,"out_dense.txt"); */
-  /*   double ma = minimize_max_abs(p, 1e-1); */
-  /*   sparsify(p, 1.0, 1e-4); */
-  /*   sparsify(p, 1.0, 1e-4); */
-  /*   cout << "ma " << ma << endl; */
-  /*   logsol(p.x,"out.txt"); */
-  /*   return 0; */
-  /* } */
-/* return 1; */
-
-  /* if (term == SOLUTION) { */
+  if (term == SOLUTION) {
   /* if (term == SOLUTION || term == BORDER) { */
-  if (true){
+  /* if (true){ */
     minimize_max_abs(p, 0.01);
     /* sparsify(p, 1.0, 1e-4); */
     int successes = 0;
@@ -241,7 +194,4 @@ int main(int argc, const char** argv) {
     return 0;
   }
   return 1;
-
-  /* logsol(p.x,"out.txt"); */
-  /* return 0; */
 }
