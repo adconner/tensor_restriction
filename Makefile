@@ -1,14 +1,17 @@
 # CFLAGS=-g -fsanitize=address
 CFLAGS=-g -O3 -ffast-math -march=native
 # CFLAGS=-g
-CXXFLAGS=-std=c++20 -I/usr/include/eigen3 $(shell pkg-config --cflags lapacke clp) $(CFLAGS)
-LDFLAGS=-llapacke $(shell pkg-config --libs lapacke clp) -lceres -lcxsparse -lcholmod -lumfpack -lamd -lcamd -lcolamd -lccolamd -lbtf -lsuitesparseconfig -lmetis -llapack -lopenblas -lglog -lomp -pthread  $(CXXFLAGS)
+# CXXFLAGS=-std=c++20 -I/usr/include/eigen3 $(shell pkg-config --cflags lapacke clp) $(CFLAGS)
+# LDFLAGS=-llapacke $(shell pkg-config --libs lapacke clp) -lceres -lcxsparse -lcholmod -lumfpack -lamd -lcamd -lcolamd -lccolamd -lbtf -lsuitesparseconfig -lmetis -llapack -lopenblas -lglog -lomp -pthread  $(CXXFLAGS)
+CXXFLAGS=-std=c++20 $(shell pkg-config --cflags eigen3 lapacke) $(CFLAGS)
+LDFLAGS=-lceres $(shell pkg-config --libs lapacke) -lglog
 CC=clang
 CXX=clang++
 
 # .SUFFIXES:
 
-ofiles=initial.o l2reg.o util.o opts.o discrete.o cholmod.o
+ofiles=initial.o l2reg.o util.o opts.o discrete.o
+# ofiles=initial.o l2reg.o util.o opts.o discrete.o cholmod.o
 # ofiles+=$(sort $(patsubst %.c,%.o,$(wildcard gen/*.c)))
 # ofiles+=$(sort $(patsubst %.cpp,%.o,$(wildcard gen/*.cpp)))
 ofiles+=$(sort $(patsubst %.cpp,%.o,$(wildcard restrict/*.cpp)))
