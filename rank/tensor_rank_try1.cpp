@@ -120,65 +120,6 @@ int main(int argc, const char** argv) {
   }
   double cost; p.p.Evaluate(Problem::EvaluateOptions(),&cost,0,0,0);
   printf("%20.15g\n",2*cost);
-  /* logsol(p.x,"out_dense.txt"); */
-  /* if (2*cost > 1.0) { */
-  /*   return 1; */
-  /* } */
-
-  /* trust_region_f(p,[&](){ */
-  /*     for (int it=0; it<3*4; ++it) { */
-  /*       /1* als_some(p.x.data(),eqs,it%3,1e-3); *1/ */
-  /*       als_sym(p.x.data()); */
-  /*       /1* als_sym_some(p.x.data(),eqs); *1/ */
-  /*       /1* als(p.x.data(),it%3); *1/ */
-  /*     } */
-  /*     },1e-7,300); */
-  /* logsol(p.x,"out_dense.txt"); */
-
-  /* // trust region refine/als with l2 regularization curretly trust region */
-  /* double costlast=1e7; */
-  /* int bad = 0; */
-  /* double sqalpha = 0.1; */
-  /* /1* for (int it=0; it<2000; ++it) { *1/ */
-  /* int it=0; */ 
-  /* trust_region_f(p,[&](){ */
-  /*   for (int i=0; i<3*4; ++i) { */
-  /*     als_some(p.x.data(),eqs,i%3); */
-  /*   } */
-  /*   double cost; p.p.Evaluate(Problem::EvaluateOptions(),&cost,0,0,0); */
-  /*   double ma = accumulate(p.x.begin(),p.x.end(),0.0,[](double a, double b) */ 
-  /*       {return max(a,std::abs(b));} ); */ 
-  /*   double l2 = sqrt(accumulate(p.x.begin(),p.x.end(),0.0,[](double a, double b) */ 
-  /*       {return a+b*b;} )); */ 
-  /*   if ((costlast - cost) / costlast < 1e-3) { */
-  /*     bad++; */
-  /*   } else { */
-  /*     bad=0; */
-  /*   } */
-  /*   printf("%4d %20.15g %20.15g %20.15g %10.5g %d\n",it,2*cost,ma,l2,sqalpha,bad); */
-  /*   if (bad >= 3) { */
-  /*     if (sqalpha < 1e-4) { */
-  /*       sqalpha = 0.0; */
-  /*     } else { */
-  /*       sqalpha *= 0.7; */
-  /*     } */
-  /*     bad = 0; */
-  /*   } */
-  /*   costlast = cost; */
-  /*   it++; */
-  /* },1e-7,1000); */
-
-
-  /* /1* int r = 21, R = 23; *1/ */
-  /* /1* for (int i=0; i<N/R; ++i) { *1/ */
-  /* /1*   for (int j=r; j<R; ++j) { *1/ */
-  /* /1*     int k=i*R+j; *1/ */
-  /* /1*     for (int l=0; l<MULT; ++l) { *1/ */
-  /* /1*       p.x[MULT*k+l] = 0.0; *1/ */
-  /* /1*     } *1/ */
-  /* /1*     set_value_constant(p,k); *1/ */
-  /* /1*   } *1/ */
-  /* /1* } *1/ */
 
   MyTerminationType term = NO_SOLUTION;
 
@@ -192,58 +133,33 @@ int main(int argc, const char** argv) {
   /* term = l2_reg_search(p, 1e-3, 1e-3, true, 3000, 0.1); */
 
   term = l2_reg_search(p, 1e-3, 1e-3, false, 3000, 0.0);
-
-  /* return 0; */
-  /* term = l2_reg_search(p, 1e-2, 1e-5, true, 1000, 0.1); */
-  /* term = l2_reg_search(p, 1e-2, 1e-5, false, 100, 0.0001); */
-  /* term = l2_reg_search(p, 1e-2, 1e-16, true, 100); */
-  /* term = SOLUTION; */
-
-  /* int successes = 0; */
-  /* greedy_discrete(p, successes, DA_ZERO, N); */
-  /* greedy_discrete(p, successes, DA_E3, N); */
-  /* Solver::Summary s; term = solve(p, s, 1e-13); */
-  /* cout << s.FullReport() << endl; */
-  /* logsol(p.x,"out.txt"); */
-  /* return 0; */
-
-
-  /* logsol(p.x,"out_dense.txt"); */
-  /* if (term == SOLUTION || term == BORDER_LIKELY) { */
-  /*   return 0; */
-  /* } else { */
-  /*   return 1; */
-  /* } */
-
-  /* if (term == SOLUTION) { */
-  /*   logsol(p.x,"out_dense.txt"); */
-  /*   double ma = minimize_max_abs(p, 1e-1); */
-  /*   sparsify(p, 1.0, 1e-4); */
-  /*   sparsify(p, 1.0, 1e-4); */
-  /*   cout << "ma " << ma << endl; */
-  /*   logsol(p.x,"out.txt"); */
-  /*   return 0; */
-  /* } */
-/* return 1; */
-
-  if (term == SOLUTION) {
-    minimize_max_abs(p, 1e-1);
-    /* sparsify(p, 1.0, 1e-4); */
-    int successes = 0;
-    /* greedy_discrete_careful(p, successes, DA_ZERO); */
-    /* greedy_discrete_careful(p, successes, DA_E3); */
-    greedy_discrete(p, successes, DA_ZERO, N);
-    /* greedy_discrete(p, successes, DA_PM_ONE, N); */
-    greedy_discrete(p, successes, DA_E3, N);
-    /* greedy_discrete_pairs(p, N*100); */
-    double ma = minimize_max_abs(p);
-    cout << "ma " << ma << endl;
+  
+  switch (term) {
+    case CONTINUE: cout << "CONTINUE" << endl; break;
+    case CONTINUE_RESET: cout << "CONTINUE_RESET" << endl; break;
+    case SOLUTION: cout << "SOLUTION" << endl; break;
+    case BORDER: cout << "BORDER" << endl; break;
+    case BORDER_OR_NO_SOLUTION: cout << "BORDER_OR_NO_SOLUTION" << endl; break;
+    case NO_SOLUTION: cout << "NO_SOLUTION" << endl; break;
+    case UNKNOWN: cout << "UNKNOWN" << endl; break;
   }
 
   logsol(p.x,outf);
   
+  if (term == SOLUTION) {
+    minimize_max_abs(p, 1e-2);
+    int successes = 0;
+    greedy_discrete(p, successes, DA_ZERO, N);
+    minimize_max_abs(p, 1e-2);
+#ifdef CX
+    greedy_discrete(p, successes, DA_E3, N);
+#else
+    greedy_discrete(p, successes, DA_PM_ONE, N);
+#endif
+    double ma = minimize_max_abs(p);
+    cout << "ma " << ma << endl;
+    logsol(p.x,outf);
+  }
+  
   return 0;
-
-  /* logsol(p.x,"out.txt"); */
-  /* return 0; */
 }
