@@ -28,8 +28,8 @@ tensor_rank_try1: tensor_rank_try1.o $(ofiles)
 ../prob.h:
 	echo '#include "restrict/prob.h"' > $@
 	
-prob.o: prob.cpp
-tensor.o: tensor.cpp
+prob.o: prob.cpp Makefile
+tensor.o: tensor.cpp Makefile
 ../tight.o: ../tight.cpp ../util.h ../opts.h ../discrete.h ../initial.h Makefile | ../prob.h
 ../util.o: ../util.cpp ../util.h ../opts.h Makefile | ../prob.h
 ../discrete.o: ../discrete.h ../util.h ../opts.h Makefile | ../prob.h
