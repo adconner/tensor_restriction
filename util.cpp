@@ -54,10 +54,10 @@ void set_value_constant_or_variable(MyProblem &p, int i, bool variable) {
     /* cout << endl<< (variable ? "adding back " : "deleting ") << bi << " " << k << " "; */
     /* copy(v.begin(),v.end(),ostream_iterator<int>(cout," ")); cout << endl; */
     if (v.empty()) {
-      p.p.SetParameterization(p.x.data()+BBOUND[bi]*MULT,0);
+      p.p.SetManifold(p.x.data()+BBOUND[bi]*MULT,0);
     } else {
-      p.p.SetParameterization(p.x.data()+BBOUND[bi]*MULT,
-          new SubsetParameterization(bsize*MULT,v));
+      p.p.SetManifold(p.x.data()+BBOUND[bi]*MULT,
+          new SubsetManifold(bsize*MULT,v));
     }
   }
 }

@@ -156,7 +156,7 @@ cholmod_sparse *jacobian(MyProblem &p, Problem::EvaluateOptions eopts, cholmod_c
     for (auto x : xs) {
       if (find(eopts.parameter_blocks.begin(),eopts.parameter_blocks.end(),x) !=
           eopts.parameter_blocks.end()) {
-        nnz += p.p.ParameterBlockLocalSize(x) *
+        nnz += p.p.ParameterBlockTangentSize(x) *
           p.p.GetCostFunctionForResidualBlock(rid)->num_residuals();
       }
     }
@@ -168,7 +168,7 @@ cholmod_sparse *jacobian(MyProblem &p, Problem::EvaluateOptions eopts, cholmod_c
   int j = 0;
   for (auto x : eopts.parameter_blocks) {
     js.push_back(j);
-    j += p.p.ParameterBlockLocalSize(x);
+    j += p.p.ParameterBlockTangentSize(x);
   }
 
   int i = 0, ii = 0;
@@ -181,7 +181,7 @@ cholmod_sparse *jacobian(MyProblem &p, Problem::EvaluateOptions eopts, cholmod_c
       auto it = find(eopts.parameter_blocks.begin(),eopts.parameter_blocks.end(),x);
       if (it != eopts.parameter_blocks.end()) {
         int j = js[it - eopts.parameter_blocks.begin()];
-        int jsize = p.p.ParameterBlockLocalSize(x);
+        int jsize = p.p.ParameterBlockTangentSize(x);
 
         jacobians.push_back( ((double*)jact->x) + ii );
         for (int li = 0; li < isize; ++li) {
